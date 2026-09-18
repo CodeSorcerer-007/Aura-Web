@@ -12,6 +12,7 @@ export const UIProvider = ({ children }) => {
     const [isArchiveOpen, setIsArchiveOpen] = useState(false);
     const [isShareSummaryOpen, setIsShareSummaryOpen] = useState(false);
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+    const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
     const [detailModal, setDetailModal] = useState({ isOpen: false, taskId: null });
     const [activeFilter, setActiveFilter] = useState({ type: 'all', value: null });
     const [toastMessage, setToastMessage] = useState(null);
@@ -40,6 +41,8 @@ export const UIProvider = ({ children }) => {
         setIsShareSummaryOpen,
         isCommandPaletteOpen,
         setIsCommandPaletteOpen,
+        isShortcutsOpen,
+        setIsShortcutsOpen,
         detailModal,
         setDetailModal,
         activeFilter,

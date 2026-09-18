@@ -30,6 +30,7 @@ import { CommandPalette } from './components/modals/CommandPalette';
 import { WinModal } from './components/modals/WinModal';
 import { TemplateSuggestionModal } from './components/modals/TemplateSuggestionModal';
 import { TaskDetailModal } from './components/modals/TaskDetailModal';
+import { ShortcutsModal } from './components/modals/ShortcutsModal';
 
 const AuraAppContent = () => {
     const { theme, setTheme, themeLoaded, customThemes, setCustomThemes, customThemesLoaded, allThemes } = useTheme();
@@ -43,6 +44,7 @@ const AuraAppContent = () => {
         isArchiveOpen, setIsArchiveOpen,
         isShareSummaryOpen, setIsShareSummaryOpen,
         isCommandPaletteOpen, setIsCommandPaletteOpen,
+        isShortcutsOpen, setIsShortcutsOpen,
         detailModal, setDetailModal,
         activeFilter, setActiveFilter,
         toastMessage, setToastMessage,
@@ -149,10 +151,17 @@ const AuraAppContent = () => {
                 else if (isThemeCreatorOpen) setIsThemeCreatorOpen(false);
                 else if (isArchiveOpen) setIsArchiveOpen(false);
                 else if (isShareSummaryOpen) setIsShareSummaryOpen(false);
+                else if (isShortcutsOpen) setIsShortcutsOpen(false);
                 return;
             }
 
             if (isInputFocused) return;
+
+            if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+                e.preventDefault();
+                setIsShortcutsOpen(prev => !prev);
+                return;
+            }
 
             switch (e.key) {
                 case 'n':
@@ -176,12 +185,13 @@ const AuraAppContent = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isCommandPaletteOpen, isSearchOpen, isSettingsOpen, detailModal.isOpen, focusTaskId, isMindfulMinuteOpen, isThemeCreatorOpen, isArchiveOpen, isShareSummaryOpen, setCurrentView, setIsCommandPaletteOpen, setIsSearchOpen, setIsSettingsOpen, setDetailModal, setFocusTaskId, setIsMindfulMinuteOpen, setIsThemeCreatorOpen, setIsArchiveOpen, setIsShareSummaryOpen]);
+    }, [isCommandPaletteOpen, isSearchOpen, isSettingsOpen, detailModal.isOpen, focusTaskId, isMindfulMinuteOpen, isThemeCreatorOpen, isArchiveOpen, isShareSummaryOpen, isShortcutsOpen, setCurrentView, setIsCommandPaletteOpen, setIsSearchOpen, setIsSettingsOpen, setDetailModal, setFocusTaskId, setIsMindfulMinuteOpen, setIsThemeCreatorOpen, setIsArchiveOpen, setIsShareSummaryOpen, setIsShortcutsOpen]);
 
     const commands = useMemo(() => [
         { label: "New Task", action: () => document.querySelector('input[placeholder*="Capture a thought"]')?.focus(), shortcut: "N" },
         { label: "Open Search", action: () => setIsSearchOpen(true), shortcut: "Ctrl+P" },
         { label: "Open Settings", action: () => setIsSettingsOpen(true), shortcut: "S" },
+        { label: "Keyboard Shortcuts", action: () => setIsShortcutsOpen(true), shortcut: "?" },
         { label: "Mindful Breathing Minute", action: () => setIsMindfulMinuteOpen(true), shortcut: "" },
         { label: "Share Today's Wins", action: () => setIsShareSummaryOpen(true), shortcut: "" },
         { label: "Archived Tasks", action: () => setIsArchiveOpen(true), shortcut: "" },
@@ -192,7 +202,7 @@ const AuraAppContent = () => {
         { label: "Go to Review", action: () => setCurrentView('review'), shortcut: "5" },
         { label: "Toggle Theme: Dark", action: () => setTheme('dark'), shortcut: "" },
         { label: "Toggle Theme: Light", action: () => setTheme('light'), shortcut: "" },
-    ], [setCurrentView, setIsArchiveOpen, setIsMindfulMinuteOpen, setIsSearchOpen, setIsSettingsOpen, setIsShareSummaryOpen, setTheme]);
+    ], [setCurrentView, setIsArchiveOpen, setIsMindfulMinuteOpen, setIsSearchOpen, setIsSettingsOpen, setIsShareSummaryOpen, setIsShortcutsOpen, setTheme]);
 
     return (
         <div className={`theme-wrapper theme-${theme} min-h-screen font-sans antialiased bg-[var(--color-bg)] text-[var(--color-text-primary)] flex flex-col`}>
@@ -233,6 +243,7 @@ const AuraAppContent = () => {
                             onMindfulClick={() => setIsMindfulMinuteOpen(true)}
                             dailyQuote={dailyQuote}
                             onShare={() => setIsShareSummaryOpen(true)}
+                            onShortcutsClick={() => setIsShortcutsOpen(true)}
                         />
 
                         <AnimatePresence>
@@ -474,6 +485,15 @@ const AuraAppContent = () => {
                                 isOpen={isCommandPaletteOpen}
                                 onClose={() => setIsCommandPaletteOpen(false)}
                                 commands={commands}
+                            />
+                        )}
+                    </AnimatePresence>
+
+                    <AnimatePresence>
+                        {isShortcutsOpen && (
+                            <ShortcutsModal
+                                isOpen={isShortcutsOpen}
+                                onClose={() => setIsShortcutsOpen(false)}
                             />
                         )}
                     </AnimatePresence>

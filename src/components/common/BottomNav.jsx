@@ -17,8 +17,12 @@ export const BottomNav = ({ currentView, setCurrentView }) => {
         { id: 'review', label: 'Review', icon: <BarChartIcon /> }
     ];
 
+    const bottomClass = currentView === 'flow'
+        ? 'bottom-[calc(5.2rem+env(safe-area-inset-bottom))]'
+        : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
+
     return (
-        <div className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] left-0 right-0 z-20 flex justify-center px-4 pointer-events-none">
+        <div className={`fixed ${bottomClass} left-0 right-0 z-20 flex justify-center px-4 pointer-events-none transition-all duration-300 ease-in-out`}>
             <div className="flex items-center gap-1 sm:gap-2 bg-[var(--color-bg-secondary)]/80 backdrop-blur-lg border border-[var(--color-border)] rounded-full p-2 pointer-events-auto">
                 {navItems.map(item => (
                     <button

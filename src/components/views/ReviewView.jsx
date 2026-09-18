@@ -44,7 +44,14 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
     const staleTasks = useMemo(() => {
         const twoWeeksAgo = new Date();
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
-        return tasks.filter(task => !task.completed && new Date(task.id) < twoWeeksAgo);
+        return tasks.filter(task => {
+            if (task.completed) return false;
+            const createdDate = task.createdAt 
+                ? new Date(task.createdAt) 
+                : (typeof task.id === 'number' && task.id > 1000000000000 ? new Date(task.id) : null);
+            if (!createdDate || isNaN(createdDate.getTime())) return false;
+            return createdDate < twoWeeksAgo;
+        });
     }, [tasks]);
 
     const totalCompleted = completedTasks.length;

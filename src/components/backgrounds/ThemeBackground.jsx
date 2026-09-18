@@ -1,5 +1,7 @@
 import React from 'react';
 
+const CYBER_CODE_CHARS = ['0', '1', 'A', 'Z', '9', 'X', '7', '4', 'F', 'B', 'Ω', 'λ', 'Ψ', '8', '3', 'E', 'Q', '5', 'R', 'K'];
+
 export const ThemeBackground = ({ theme }) => {
     return (
         <div className={`theme-bg theme-bg-${theme}`}>
@@ -37,7 +39,7 @@ export const ThemeBackground = ({ theme }) => {
             {theme === 'cyberpunk' && (
                 <div className="cyber-code">
                     {[...Array(40)].map((_, i) => (
-                        <div key={i} className="code-char" style={{ '--char': `'${Math.random().toString(36)[2] || 'A'}'` }} ></div>
+                        <div key={i} className="code-char" style={{ '--char': `'${CYBER_CODE_CHARS[i % CYBER_CODE_CHARS.length]}'` }} ></div>
                     ))}
                     <div className="cyber-grid"></div>
                 </div>

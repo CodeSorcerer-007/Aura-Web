@@ -5,7 +5,8 @@ import {
     Share2Icon,
     SearchIcon,
     SettingsIcon,
-    ZapIcon
+    ZapIcon,
+    HelpCircleIcon
 } from './Icons';
 
 export const Header = ({
@@ -14,7 +15,8 @@ export const Header = ({
     onSearchClick,
     onMindfulClick,
     dailyQuote,
-    onShare
+    onShare,
+    onShortcutsClick
 }) => (
     <motion.header 
         initial={{ opacity: 0, y: -20 }} 
@@ -39,6 +41,13 @@ export const Header = ({
             </button>
         </div>
         <div className="absolute top-0 right-0 flex items-center gap-4">
+            <button 
+                onClick={onShortcutsClick} 
+                className="bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"
+                title="Shortcuts (?)"
+            >
+                <HelpCircleIcon className="w-6 h-6"/>
+            </button>
             <button 
                 onClick={onSearchClick} 
                 className="bg-transparent text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors"

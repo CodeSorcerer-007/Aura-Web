@@ -1,4 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
+import * as Tone from 'tone';
 
 export const SOUND_OPTIONS = [
     { id: 'off', label: 'Off', icon: 'VolumeX' },
@@ -39,10 +40,9 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
     useEffect(() => {
         cleanupSound();
 
-        if (soundType === 'off' || !window.Tone) return;
+        if (soundType === 'off') return;
 
         try {
-            const Tone = window.Tone;
             // Convert 0..1 volume to decibels (-40dB to 0dB)
             const dbVal = volume <= 0.01 ? -Infinity : Tone.gainToDb(volume * 0.4);
 
@@ -51,7 +51,7 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
                 noise.volume.value = dbVal;
                 soundNodesRef.current = noise;
             } else if (soundType === 'rain') {
-                // Rain: Pink noise through a bandpass/lowpass filter with random modulation
+                // Rain: Pink noise through a lowpass filter
                 const noise = new Tone.Noise('pink');
                 const filter = new Tone.Filter({
                     type: 'lowpass',
@@ -159,7 +159,7 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
                     if (soundNodesRef.current && soundNodesRef.current.start) {
                         soundNodesRef.current.start();
                     }
-                });
+                }).catch(e => console.warn("Tone context start:", e));
             }
         } catch (e) {
             console.error("Error starting ambient sound:", e);
@@ -168,18 +168,18 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
         return () => {
             cleanupSound();
         };
-    }, [soundType, cleanupSound]);
+    }, [soundType, cleanupSound, isActive, volume]);
 
     // Handle timer active/pause changes
     useEffect(() => {
-        if (!soundNodesRef.current || !window.Tone) return;
+        if (!soundNodesRef.current) return;
 
         if (isActive) {
-            window.Tone.start().then(() => {
+            Tone.start().then(() => {
                 if (soundNodesRef.current && soundNodesRef.current.start) {
                     soundNodesRef.current.start();
                 }
-            });
+            }).catch(e => console.warn("Tone context start:", e));
         } else {
             if (soundNodesRef.current && soundNodesRef.current.stop) {
                 soundNodesRef.current.stop();
@@ -189,8 +189,8 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
 
     const handleVolumeChange = (newVol) => {
         setVolume(newVol);
-        if (soundNodesRef.current && window.Tone) {
-            const dbVal = newVol <= 0.01 ? -Infinity : window.Tone.gainToDb(newVol * 0.4);
+        if (soundNodesRef.current) {
+            const dbVal = newVol <= 0.01 ? -Infinity : Tone.gainToDb(newVol * 0.4);
             if (soundNodesRef.current.setVolume) {
                 soundNodesRef.current.setVolume(dbVal);
             } else if (soundNodesRef.current.volume) {
@@ -209,31 +209,31 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
 };
 
 export const playUiSound = (effect, enabled = true) => {
-    if (!enabled || !window.Tone) return;
+    if (!enabled) return;
 
     try {
-        const now = window.Tone.now();
-        window.Tone.start().then(() => {
+        Tone.start().then(() => {
+            const now = Tone.now();
             switch (effect) {
                 case 'add':
-                    new window.Tone.Synth({
+                    new Tone.Synth({
                         oscillator: { type: 'sine' },
                         envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
                     }).toDestination().triggerAttackRelease("C5", "16n", now);
                     break;
                 case 'complete':
-                    new window.Tone.Synth({
+                    new Tone.Synth({
                         oscillator: { type: 'triangle' },
                         envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.2 }
                     }).toDestination().triggerAttackRelease("E6", "8n", now);
                     break;
                 case 'achievement':
-                    new window.Tone.PluckSynth().toDestination().triggerAttackRelease("C7", "8n", now);
+                    new Tone.PluckSynth().toDestination().triggerAttackRelease("C7", "8n", now);
                     break;
                 default:
                     break;
             }
-        });
+        }).catch(e => console.warn("Audio unlock pending gesture:", e));
     } catch (e) {
         console.error("Error playing UI sound:", e);
     }
