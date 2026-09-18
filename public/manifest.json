@@ -1,0 +1,31 @@
+{
+  "short_name": "Aura",
+  "name": "Aura — Mindful Productivity & Task Flow",
+  "description": "A mindful productivity companion featuring visual time blocking, ambient soundscapes, personal grove, and flow management.",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "48x48"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "categories": ["productivity", "utilities", "lifestyle"]
+}
