@@ -1,19 +1,36 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as Tone from 'tone';
+import { playAcousticBowl } from './useSoundEffects';
 
-export const SOUND_OPTIONS = [
+export const playTibetanBowl = (freq = 216, duration = 3.5) => {
+    playAcousticBowl(freq, duration);
+};
+
+export const ATMOSPHERE_OPTIONS = [
     { id: 'off', label: 'Off', icon: 'VolumeX' },
-    { id: 'solfeggio_432', label: '432 Hz Alpha Harmony', icon: 'Radio' },
-    { id: 'solfeggio_528', label: '528 Hz Transformation', icon: 'Zap' },
-    { id: 'chimes_procedural', label: 'Zen Tibetan Chimes', icon: 'Bell' },
     { id: 'rain', label: 'Rain', icon: 'CloudRain' },
     { id: 'ocean', label: 'Ocean Waves', icon: 'Waves' },
     { id: 'wind', label: 'Forest Wind', icon: 'Wind' },
-    { id: 'waves_theta', label: 'Theta Waves (6Hz)', icon: 'Zap' },
-    { id: 'waves_alpha', label: 'Alpha Focus (10Hz)', icon: 'Sparkles' },
     { id: 'brown', label: 'Brown Noise', icon: 'Volume2' },
     { id: 'pink', label: 'Pink Noise', icon: 'Volume2' },
     { id: 'white', label: 'White Noise', icon: 'Volume2' },
+];
+
+export const FREQUENCY_OPTIONS = [
+    { id: 'off', label: 'Off', icon: 'VolumeX' },
+    { id: 'solfeggio_432', label: '432 Hz Alpha', icon: 'Radio' },
+    { id: 'solfeggio_528', label: '528 Hz Miracle', icon: 'Zap' },
+    { id: 'waves_theta', label: 'Theta (6Hz)', icon: 'Sparkles' },
+    { id: 'waves_alpha', label: 'Alpha (10Hz)', icon: 'Sparkles' },
+    { id: 'chimes_procedural', label: 'Tibetan Chimes', icon: 'Bell' },
+];
+
+// Presets for single-click harmonic layering
+export const SOUND_PRESETS = [
+    { id: 'deep_focus', name: 'Deep Focus', atmosphere: 'rain', frequency: 'solfeggio_432' },
+    { id: 'ocean_theta', name: 'Ocean Theta', atmosphere: 'ocean', frequency: 'waves_theta' },
+    { id: 'forest_zen', name: 'Forest Zen', atmosphere: 'wind', frequency: 'chimes_procedural' },
+    { id: 'transformation', name: '528 Hz Renewal', atmosphere: 'off', frequency: 'solfeggio_528' },
 ];
 
 export const SLEEP_TIMER_OPTIONS = [
@@ -24,376 +41,344 @@ export const SLEEP_TIMER_OPTIONS = [
     { id: 60, label: '60m' }
 ];
 
-export const useAmbientSound = (isActive, initialSound = 'off') => {
-    const [soundType, setSoundType] = useState(initialSound);
-    const [volume, setVolume] = useState(0.5); // 0 to 1
-    const [sleepTimer, setSleepTimerState] = useState('off'); // 'off' | 15 | 25 | 50 | 60
+export const useAmbientSound = (isActive = true) => {
+    const [atmosphereSound, setAtmosphereSound] = useState('off');
+    const [frequencySound, setFrequencySound] = useState('off');
+    const [masterVolume, setMasterVolume] = useState(0.6); // 0 to 1
+    const [atmosphereVolume, setAtmosphereVolume] = useState(0.7); // 0 to 1
+    const [frequencyVolume, setFrequencyVolume] = useState(0.7); // 0 to 1
+    const [sleepTimer, setSleepTimerState] = useState('off');
     const [sleepSecondsLeft, setSleepSecondsLeft] = useState(0);
-    const soundNodesRef = useRef(null);
+
+    // Audio nodes refs
+    const masterGainRef = useRef(null);
+    const atmosphereGainRef = useRef(null);
+    const frequencyGainRef = useRef(null);
+    const atmosphereNodesRef = useRef(null);
+    const frequencyNodesRef = useRef(null);
     const chimesIntervalRef = useRef(null);
 
-    const cleanupSound = useCallback(() => {
+    // Initialize master bus
+    useEffect(() => {
+        if (!masterGainRef.current) {
+            masterGainRef.current = new Tone.Gain(masterVolume).toDestination();
+            atmosphereGainRef.current = new Tone.Gain(atmosphereVolume).connect(masterGainRef.current);
+            frequencyGainRef.current = new Tone.Gain(frequencyVolume).connect(masterGainRef.current);
+        }
+
+        return () => {
+            if (masterGainRef.current) {
+                masterGainRef.current.dispose();
+                masterGainRef.current = null;
+            }
+            if (atmosphereGainRef.current) {
+                atmosphereGainRef.current.dispose();
+                atmosphereGainRef.current = null;
+            }
+            if (frequencyGainRef.current) {
+                frequencyGainRef.current.dispose();
+                frequencyGainRef.current = null;
+            }
+        };
+    }, []);
+
+    // Update Master Gain
+    useEffect(() => {
+        if (masterGainRef.current) {
+            masterGainRef.current.gain.rampTo(masterVolume, 0.1);
+        }
+    }, [masterVolume]);
+
+    // Update Atmosphere Gain
+    useEffect(() => {
+        if (atmosphereGainRef.current) {
+            atmosphereGainRef.current.gain.rampTo(atmosphereVolume, 0.1);
+        }
+    }, [atmosphereVolume]);
+
+    // Update Frequency Gain
+    useEffect(() => {
+        if (frequencyGainRef.current) {
+            frequencyGainRef.current.gain.rampTo(frequencyVolume, 0.1);
+        }
+    }, [frequencyVolume]);
+
+    // Cleanup Atmosphere Track
+    const cleanupAtmosphere = useCallback(() => {
+        if (atmosphereNodesRef.current) {
+            try {
+                if (atmosphereNodesRef.current.stop) atmosphereNodesRef.current.stop();
+                if (atmosphereNodesRef.current.dispose) atmosphereNodesRef.current.dispose();
+            } catch (e) {
+                console.error("Atmosphere cleanup error:", e);
+            }
+            atmosphereNodesRef.current = null;
+        }
+    }, []);
+
+    // Cleanup Frequency Track
+    const cleanupFrequency = useCallback(() => {
         if (chimesIntervalRef.current) {
             clearInterval(chimesIntervalRef.current);
             chimesIntervalRef.current = null;
         }
-
-        if (soundNodesRef.current) {
+        if (frequencyNodesRef.current) {
             try {
-                if (soundNodesRef.current.stop) soundNodesRef.current.stop();
-                if (soundNodesRef.current.dispose) soundNodesRef.current.dispose();
-                if (Array.isArray(soundNodesRef.current)) {
-                    soundNodesRef.current.forEach(node => {
-                        if (node.stop) node.stop();
-                        if (node.dispose) node.dispose();
-                    });
-                }
+                if (frequencyNodesRef.current.stop) frequencyNodesRef.current.stop();
+                if (frequencyNodesRef.current.dispose) frequencyNodesRef.current.dispose();
             } catch (e) {
-                console.error("Audio cleanup error:", e);
+                console.error("Frequency cleanup error:", e);
             }
-            soundNodesRef.current = null;
+            frequencyNodesRef.current = null;
         }
     }, []);
 
-    // Create and start ambient soundscape based on soundType
+    // 1. Atmosphere Sound Engine
     useEffect(() => {
-        cleanupSound();
-
-        if (soundType === 'off') return;
+        cleanupAtmosphere();
+        if (atmosphereSound === 'off' || !atmosphereGainRef.current) return;
 
         try {
-            // Convert 0..1 volume to decibels (-40dB to 0dB)
-            const dbVal = volume <= 0.01 ? -Infinity : Tone.gainToDb(volume * 0.4);
+            const dest = atmosphereGainRef.current;
 
-            if (soundType === 'pink' || soundType === 'brown' || soundType === 'white') {
-                const noise = new Tone.Noise(soundType).toDestination();
-                noise.volume.value = dbVal;
-                soundNodesRef.current = noise;
-            } else if (soundType === 'rain') {
-                // Rain: Pink noise through a lowpass filter
-                const noise = new Tone.Noise('pink');
-                const filter = new Tone.Filter({
-                    type: 'lowpass',
-                    frequency: 1200,
-                    rolloff: -24
-                });
-                const gain = new Tone.Gain(Tone.dbToGain(dbVal)).toDestination();
-                noise.connect(filter);
-                filter.connect(gain);
-                soundNodesRef.current = {
+            if (atmosphereSound === 'pink' || atmosphereSound === 'brown' || atmosphereSound === 'white') {
+                const noise = new Tone.Noise(atmosphereSound).connect(dest);
+                noise.volume.value = -10;
+                atmosphereNodesRef.current = {
                     start: () => noise.start(),
                     stop: () => noise.stop(),
-                    dispose: () => {
-                        noise.dispose();
-                        filter.dispose();
-                        gain.dispose();
-                    },
-                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val), 0.1); }
+                    dispose: () => noise.dispose()
                 };
-            } else if (soundType === 'ocean') {
-                // Ocean: Brown noise through an LFO-modulated lowpass filter
-                const noise = new Tone.Noise('brown');
-                const filter = new Tone.Filter({
-                    type: 'lowpass',
-                    frequency: 300,
-                    rolloff: -12
-                });
-                const lfo = new Tone.LFO({
-                    frequency: 0.1, // 10 second wave cycle
-                    min: 150,
-                    max: 800
-                });
-                lfo.connect(filter.frequency);
-                const gain = new Tone.Gain(Tone.dbToGain(dbVal)).toDestination();
-                noise.connect(filter);
-                filter.connect(gain);
-
-                soundNodesRef.current = {
-                    start: () => {
-                        noise.start();
-                        lfo.start();
-                    },
-                    stop: () => {
-                        noise.stop();
-                        lfo.stop();
-                    },
-                    dispose: () => {
-                        noise.dispose();
-                        filter.dispose();
-                        lfo.dispose();
-                        gain.dispose();
-                    },
-                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val), 0.1); }
-                };
-            } else if (soundType === 'wind') {
-                // Forest Wind: Pink noise with soft undulating filter
+            } else if (atmosphereSound === 'rain') {
                 const noise = new Tone.Noise('pink');
-                const filter = new Tone.Filter({
-                    type: 'bandpass',
-                    frequency: 500,
-                    Q: 1.5
-                });
-                const lfo = new Tone.LFO({
-                    frequency: 0.15,
-                    min: 200,
-                    max: 700
-                });
-                lfo.connect(filter.frequency);
-                const gain = new Tone.Gain(Tone.dbToGain(dbVal)).toDestination();
+                const filter = new Tone.Filter({ type: 'lowpass', frequency: 1200, rolloff: -24 });
                 noise.connect(filter);
-                filter.connect(gain);
-
-                soundNodesRef.current = {
+                filter.connect(dest);
+                atmosphereNodesRef.current = {
+                    start: () => noise.start(),
+                    stop: () => noise.stop(),
+                    dispose: () => { noise.dispose(); filter.dispose(); }
+                };
+            } else if (atmosphereSound === 'ocean') {
+                const noise = new Tone.Noise('brown');
+                const filter = new Tone.Filter({ type: 'lowpass', frequency: 300, rolloff: -12 });
+                const lfo = new Tone.LFO({ frequency: 0.1, min: 150, max: 800 });
+                lfo.connect(filter.frequency);
+                noise.connect(filter);
+                filter.connect(dest);
+                atmosphereNodesRef.current = {
                     start: () => { noise.start(); lfo.start(); },
                     stop: () => { noise.stop(); lfo.stop(); },
-                    dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); gain.dispose(); },
-                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val), 0.1); }
+                    dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); }
                 };
-            } else if (soundType === 'solfeggio_432') {
-                // 432 Hz Solfeggio Alpha Harmony with 8Hz theta beat
+            } else if (atmosphereSound === 'wind') {
+                const noise = new Tone.Noise('pink');
+                const filter = new Tone.Filter({ type: 'bandpass', frequency: 500, Q: 1.5 });
+                const lfo = new Tone.LFO({ frequency: 0.15, min: 200, max: 700 });
+                lfo.connect(filter.frequency);
+                noise.connect(filter);
+                filter.connect(dest);
+                atmosphereNodesRef.current = {
+                    start: () => { noise.start(); lfo.start(); },
+                    stop: () => { noise.stop(); lfo.stop(); },
+                    dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); }
+                };
+            }
+
+            if (isActive && atmosphereNodesRef.current) {
+                Tone.start().then(() => {
+                    atmosphereNodesRef.current?.start?.();
+                }).catch(() => {});
+            }
+        } catch (err) {
+            console.error('Atmosphere synthesis error:', err);
+        }
+
+        return () => cleanupAtmosphere();
+    }, [atmosphereSound, cleanupAtmosphere, isActive]);
+
+    // 2. Frequency Sound Engine
+    useEffect(() => {
+        cleanupFrequency();
+        if (frequencySound === 'off' || !frequencyGainRef.current) return;
+
+        try {
+            const dest = frequencyGainRef.current;
+
+            if (frequencySound === 'solfeggio_432') {
                 const oscMain = new Tone.Oscillator(432, 'sine');
-                const oscHarmonic = new Tone.Oscillator(432 + 8, 'sine'); // 8Hz binaural differential
+                const oscHarmonic = new Tone.Oscillator(432 + 8, 'sine');
                 const pannerL = new Tone.Panner(-0.6);
                 const pannerR = new Tone.Panner(0.6);
-                const gain = new Tone.Gain(Tone.dbToGain(dbVal * 0.75)).toDestination();
-
                 oscMain.connect(pannerL);
-                pannerL.connect(gain);
+                pannerL.connect(dest);
                 oscHarmonic.connect(pannerR);
-                pannerR.connect(gain);
-
-                soundNodesRef.current = {
+                pannerR.connect(dest);
+                frequencyNodesRef.current = {
                     start: () => { oscMain.start(); oscHarmonic.start(); },
                     stop: () => { oscMain.stop(); oscHarmonic.stop(); },
-                    dispose: () => { oscMain.dispose(); oscHarmonic.dispose(); pannerL.dispose(); pannerR.dispose(); gain.dispose(); },
-                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val * 0.75), 0.1); }
+                    dispose: () => { oscMain.dispose(); oscHarmonic.dispose(); pannerL.dispose(); pannerR.dispose(); }
                 };
-            } else if (soundType === 'solfeggio_528') {
-                // 528 Hz Transformation / Miracle frequency with warm overtone
+            } else if (frequencySound === 'solfeggio_528') {
                 const oscMain = new Tone.Oscillator(528, 'sine');
                 const oscOvertone = new Tone.Oscillator(1056, 'sine');
-                const gainMain = new Tone.Gain(Tone.dbToGain(dbVal * 0.8)).toDestination();
-                const gainOver = new Tone.Gain(Tone.dbToGain(dbVal * 0.2)).toDestination();
-
-                oscMain.connect(gainMain);
+                const gainOver = new Tone.Gain(0.25);
+                oscMain.connect(dest);
                 oscOvertone.connect(gainOver);
-
-                soundNodesRef.current = {
+                gainOver.connect(dest);
+                frequencyNodesRef.current = {
                     start: () => { oscMain.start(); oscOvertone.start(); },
                     stop: () => { oscMain.stop(); oscOvertone.stop(); },
-                    dispose: () => { oscMain.dispose(); oscOvertone.dispose(); gainMain.dispose(); gainOver.dispose(); },
-                    setVolume: (val) => {
-                        gainMain.gain.rampTo(Tone.dbToGain(val * 0.8), 0.1);
-                        gainOver.gain.rampTo(Tone.dbToGain(val * 0.2), 0.1);
-                    }
+                    dispose: () => { oscMain.dispose(); oscOvertone.dispose(); gainOver.dispose(); }
                 };
-            } else if (soundType === 'chimes_procedural') {
-                // Zen Tibetan Chimes: Generative pentatonic acoustic strikes every 30-50s
-                const poly = new Tone.PolySynth(Tone.Synth, {
-                    oscillator: { type: 'sine' },
-                    envelope: { attack: 0.05, decay: 4.5, sustain: 0, release: 3 }
-                }).toDestination();
-                poly.volume.value = dbVal - 2;
-
-                const notes = ['C4', 'Eb4', 'F4', 'G4', 'Bb4', 'C5', 'Eb5'];
-                const playRandomChime = () => {
-                    const note = notes[Math.floor(Math.random() * notes.length)];
-                    poly.triggerAttackRelease(note, 4.5);
-                };
-
-                // Play first chime shortly after start
-                const initialTimeout = setTimeout(playRandomChime, 1500);
-                chimesIntervalRef.current = setInterval(playRandomChime, 25000);
-
-                soundNodesRef.current = {
-                    start: () => {},
-                    stop: () => {
-                        clearTimeout(initialTimeout);
-                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
-                    },
-                    dispose: () => {
-                        clearTimeout(initialTimeout);
-                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
-                        poly.dispose();
-                    },
-                    setVolume: (val) => { poly.volume.rampTo(val - 2, 0.1); }
-                };
-            } else if (soundType === 'waves_theta' || soundType === 'waves_alpha') {
-                // Binaural beats: Dual sine waves routed to Left and Right
+            } else if (frequencySound === 'waves_theta' || frequencySound === 'waves_alpha') {
                 const baseFreq = 200;
-                const offset = soundType === 'waves_theta' ? 6 : 10; // 6Hz theta, 10Hz alpha
-
+                const offset = frequencySound === 'waves_theta' ? 6 : 10;
                 const oscL = new Tone.Oscillator(baseFreq, 'sine');
                 const oscR = new Tone.Oscillator(baseFreq + offset, 'sine');
                 const pannerL = new Tone.Panner(-1);
                 const pannerR = new Tone.Panner(1);
-                const gain = new Tone.Gain(Tone.dbToGain(dbVal * 0.7)).toDestination();
-
                 oscL.connect(pannerL);
-                pannerL.connect(gain);
+                pannerL.connect(dest);
                 oscR.connect(pannerR);
-                pannerR.connect(gain);
-
-                soundNodesRef.current = {
+                pannerR.connect(dest);
+                frequencyNodesRef.current = {
                     start: () => { oscL.start(); oscR.start(); },
                     stop: () => { oscL.stop(); oscR.stop(); },
-                    dispose: () => { oscL.dispose(); oscR.dispose(); pannerL.dispose(); pannerR.dispose(); gain.dispose(); },
-                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val * 0.7), 0.1); }
+                    dispose: () => { oscL.dispose(); oscR.dispose(); pannerL.dispose(); pannerR.dispose(); }
+                };
+            } else if (frequencySound === 'chimes_procedural') {
+                const poly = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.05, decay: 4.5, sustain: 0, release: 3 }
+                }).connect(dest);
+                poly.volume.value = -4;
+
+                const notes = ['C4', 'Eb4', 'F4', 'G4', 'Bb4', 'C5', 'Eb5'];
+                const playChime = () => {
+                    const note = notes[Math.floor(Math.random() * notes.length)];
+                    poly.triggerAttackRelease(note, 4.5);
+                };
+                const timeoutId = setTimeout(playChime, 1200);
+                chimesIntervalRef.current = setInterval(playChime, 24000);
+
+                frequencyNodesRef.current = {
+                    start: () => {},
+                    stop: () => {
+                        clearTimeout(timeoutId);
+                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
+                    },
+                    dispose: () => {
+                        clearTimeout(timeoutId);
+                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
+                        poly.dispose();
+                    }
                 };
             }
 
-            if (isActive && soundNodesRef.current) {
+            if (isActive && frequencyNodesRef.current) {
                 Tone.start().then(() => {
-                    if (soundNodesRef.current && soundNodesRef.current.start) {
-                        soundNodesRef.current.start();
-                    }
-                }).catch(e => console.warn("Tone context start:", e));
+                    frequencyNodesRef.current?.start?.();
+                }).catch(() => {});
             }
-        } catch (e) {
-            console.error("Error starting ambient sound:", e);
+        } catch (err) {
+            console.error('Frequency synthesis error:', err);
         }
 
-        return () => {
-            cleanupSound();
-        };
-    }, [soundType, cleanupSound, isActive, volume]);
+        return () => cleanupFrequency();
+    }, [frequencySound, cleanupFrequency, isActive]);
 
-    // Handle timer active/pause changes
+    // Sleep Timer countdown
     useEffect(() => {
-        if (!soundNodesRef.current) return;
-
-        if (isActive) {
-            Tone.start().then(() => {
-                if (soundNodesRef.current && soundNodesRef.current.start) {
-                    soundNodesRef.current.start();
-                }
-            }).catch(e => console.warn("Tone context start:", e));
-        } else {
-            if (soundNodesRef.current && soundNodesRef.current.stop) {
-                soundNodesRef.current.stop();
-            }
-        }
-    }, [isActive]);
-
-    const handleVolumeChange = (newVol) => {
-        setVolume(newVol);
-        if (soundNodesRef.current) {
-            const dbVal = newVol <= 0.01 ? -Infinity : Tone.gainToDb(newVol * 0.4);
-            if (soundNodesRef.current.setVolume) {
-                soundNodesRef.current.setVolume(dbVal);
-            } else if (soundNodesRef.current.volume) {
-                soundNodesRef.current.volume.value = dbVal;
-            }
-        }
-    };
-
-    // Sleep Timer countdown and auto-fade
-    const handleSetSleepTimer = (minutes) => {
-        setSleepTimerState(minutes);
-        if (minutes === 'off') {
+        if (sleepTimer === 'off') {
             setSleepSecondsLeft(0);
-        } else {
-            setSleepSecondsLeft(minutes * 60);
-        }
-    };
-
-    useEffect(() => {
-        if (sleepTimer === 'off' || sleepSecondsLeft <= 0 || !isActive || soundType === 'off') {
             return;
         }
 
-        const interval = setInterval(() => {
-            setSleepSecondsLeft((prev) => {
+        setSleepSecondsLeft(sleepTimer * 60);
+        const timer = setInterval(() => {
+            setSleepSecondsLeft(prev => {
                 if (prev <= 1) {
-                    cleanupSound();
-                    setSoundType('off');
+                    clearInterval(timer);
+                    setAtmosphereSound('off');
+                    setFrequencySound('off');
                     setSleepTimerState('off');
                     return 0;
                 }
-
-                // Smooth gradual fade in the final 60 seconds
-                if (prev <= 60 && soundNodesRef.current) {
-                    const fadeFactor = prev / 60;
-                    const fadeDb = Tone.gainToDb(volume * 0.4 * fadeFactor);
-                    if (soundNodesRef.current.setVolume) {
-                        soundNodesRef.current.setVolume(fadeDb);
-                    } else if (soundNodesRef.current.volume) {
-                        soundNodesRef.current.volume.value = fadeDb;
-                    }
-                }
-
                 return prev - 1;
             });
         }, 1000);
 
-        return () => clearInterval(interval);
-    }, [sleepTimer, sleepSecondsLeft, isActive, soundType, volume, cleanupSound]);
+        return () => clearInterval(timer);
+    }, [sleepTimer]);
 
     const formattedSleepTime = useMemo(() => {
-        if (sleepTimer === 'off' || sleepSecondsLeft <= 0) return null;
+        if (sleepSecondsLeft <= 0) return null;
         const mins = Math.floor(sleepSecondsLeft / 60);
         const secs = sleepSecondsLeft % 60;
-        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
-    }, [sleepTimer, sleepSecondsLeft]);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    }, [sleepSecondsLeft]);
+
+    const isPlaying = atmosphereSound !== 'off' || frequencySound !== 'off';
+
+    const stopAll = useCallback(() => {
+        setAtmosphereSound('off');
+        setFrequencySound('off');
+    }, []);
+
+    const applyPreset = useCallback((preset) => {
+        setAtmosphereSound(preset.atmosphere);
+        setFrequencySound(preset.frequency);
+    }, []);
+
+    // Backward compatibility for single-channel callers (such as FocusView)
+    const soundType = atmosphereSound !== 'off' ? atmosphereSound : frequencySound;
+    const setSoundType = useCallback((type) => {
+        const isFreq = FREQUENCY_OPTIONS.some(f => f.id === type);
+        if (type === 'off') {
+            setAtmosphereSound('off');
+            setFrequencySound('off');
+        } else if (isFreq) {
+            setFrequencySound(type);
+        } else {
+            setAtmosphereSound(type);
+        }
+    }, []);
+
+    const volume = masterVolume;
+    const setVolume = setMasterVolume;
+    const soundOptions = useMemo(() => [
+        ...ATMOSPHERE_OPTIONS,
+        ...FREQUENCY_OPTIONS.filter(f => f.id !== 'off')
+    ], []);
 
     return {
+        // Dual-track mixer properties
+        atmosphereSound,
+        setAtmosphereSound,
+        frequencySound,
+        setFrequencySound,
+        atmosphereVolume,
+        setAtmosphereVolume,
+        frequencyVolume,
+        setFrequencyVolume,
+        masterVolume,
+        setMasterVolume,
+        isPlaying,
+        stopAll,
+        applyPreset,
+        ATMOSPHERE_OPTIONS,
+        FREQUENCY_OPTIONS,
+        SOUND_PRESETS,
+        sleepTimer,
+        setSleepTimer: setSleepTimerState,
+        sleepTimerOptions: SLEEP_TIMER_OPTIONS,
+        formattedSleepTime,
+        // Backward compatibility
         soundType,
         setSoundType,
         volume,
-        setVolume: handleVolumeChange,
-        soundOptions: SOUND_OPTIONS,
-        sleepTimer,
-        sleepSecondsLeft,
-        setSleepTimer: handleSetSleepTimer,
-        sleepTimerOptions: SLEEP_TIMER_OPTIONS,
-        formattedSleepTime
+        setVolume,
+        soundOptions
     };
-};
-
-// Acoustic Tibetan Singing Bowl Harmonic Chime
-export const playTibetanBowl = (fundamental = 216) => {
-    try {
-        Tone.start().then(() => {
-            const now = Tone.now();
-            const poly = new Tone.PolySynth(Tone.Synth, {
-                oscillator: { type: 'sine' },
-                envelope: { attack: 0.08, decay: 4.2, sustain: 0, release: 2.5 }
-            }).toDestination();
-            poly.volume.value = -6;
-
-            // Natural partials of an acoustic singing bowl (Fundamental, Octave, 5th, Shimmer)
-            poly.triggerAttackRelease([fundamental, fundamental * 2, fundamental * 2.98, fundamental * 4], 4.2, now);
-        }).catch(e => console.warn("Audio context unlock pending:", e));
-    } catch (e) {
-        console.warn("Tibetan bowl error:", e);
-    }
-};
-
-export const playUiSound = (effect, enabled = true) => {
-    if (!enabled) return;
-
-    try {
-        Tone.start().then(() => {
-            const now = Tone.now();
-            switch (effect) {
-                case 'add':
-                    new Tone.Synth({
-                        oscillator: { type: 'sine' },
-                        envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }
-                    }).toDestination().triggerAttackRelease("C5", "16n", now);
-                    break;
-                case 'complete':
-                    // Resonant Tibetan Singing Bowl chime on completing tasks
-                    playTibetanBowl(216);
-                    break;
-                case 'achievement':
-                    playTibetanBowl(288);
-                    break;
-                default:
-                    break;
-            }
-        }).catch(e => console.warn("Audio unlock pending gesture:", e));
-    } catch (e) {
-        console.error("Error playing UI sound:", e);
-    }
 };

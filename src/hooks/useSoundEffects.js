@@ -129,14 +129,47 @@ export const playPebbleDropSound = () => {
 };
 
 /**
+ * Play harmonic pentatonic progression on subtask check
+ * Ascends through pentatonic scale, finishing with singing bowl on all completed
+ */
+export const playSubtaskProgressionSound = (completedCount = 1, totalCount = 1, isChecked = true) => {
+    if (!isChecked) {
+        playPebbleDropSound();
+        return;
+    }
+
+    try {
+        Tone.start().then(() => {
+            const now = Tone.now();
+            const synth = getKalimbaSynth();
+            
+            // Map completed count (1-based) to pentatonic scale
+            const noteIndex = Math.max(0, (completedCount - 1) % PENTATONIC_SCALE.length);
+            const note = PENTATONIC_SCALE[noteIndex];
+            synth.triggerAttackRelease(note, '8n', now);
+
+            // If this completes all subtasks, blossom with a resonant singing bowl
+            if (completedCount >= totalCount && totalCount > 0) {
+                setTimeout(() => {
+                    playAcousticBowl(324, 3.2);
+                }, 140);
+            }
+        }).catch(() => {});
+    } catch {}
+};
+
+/**
  * Unified UI Sound Router
  */
-export const playHarmonicUiSound = (effect, enabled = true, isMonolith = false) => {
+export const playHarmonicUiSound = (effect, enabled = true, isMonolith = false, extraMeta = {}) => {
     if (!enabled) return;
 
     switch (effect) {
         case 'complete':
             playTaskCompletionSound(isMonolith);
+            break;
+        case 'subtask':
+            playSubtaskProgressionSound(extraMeta.completedCount, extraMeta.totalCount, extraMeta.isChecked);
             break;
         case 'add':
         case 'drop':

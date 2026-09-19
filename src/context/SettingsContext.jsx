@@ -25,8 +25,8 @@ export const SettingsProvider = ({ children }) => {
     const allCategories = useMemo(() => ({ ...defaultCategories, ...customCategories }), [customCategories]);
 
     // Sound effect helper with harmonic scale & Monolith awareness
-    const playSoundEffect = useCallback((effect, isMonolith = false) => {
-        playHarmonicUiSound(effect, soundEffectsEnabled, isMonolith);
+    const playSoundEffect = useCallback((effect, isMonolith = false, extraMeta = {}) => {
+        playHarmonicUiSound(effect, soundEffectsEnabled, isMonolith, extraMeta);
     }, [soundEffectsEnabled]);
 
     // Notification permission handler

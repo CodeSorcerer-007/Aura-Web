@@ -1,10 +1,9 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { UIProvider, useUI } from './context/UIContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
-import { AuthProvider } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { GroveProvider, useGrove } from './context/GroveContext';
 
@@ -59,7 +58,6 @@ const AuraAppContent = () => {
         reorderTask,
         toggleSubtask,
         handlePlantSeed,
-        triggerSync,
         shutdownRitual,
         setShutdownRitual,
         shutdownRitualMessages,
@@ -76,24 +74,8 @@ const AuraAppContent = () => {
 
     const { stats, grove, unlockedAchievements } = useGrove();
 
-    // Keyboard shortcuts (extracted hook)
+    // Keyboard shortcuts
     useKeyboardShortcuts({ setCurrentView, setIsBrainSweepOpen });
-
-    const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
-
-    useEffect(() => {
-        const handleOnline = () => {
-            setIsOffline(false);
-            if (typeof triggerSync === 'function') triggerSync();
-        };
-        const handleOffline = () => setIsOffline(true);
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
-    }, [triggerSync]);
 
     const isLoading = !allDataLoaded || !themeLoaded || !customThemesLoaded;
 
@@ -168,8 +150,6 @@ const AuraAppContent = () => {
                             onShare={() => setIsShareSummaryOpen(true)}
                             onShortcutsClick={() => setIsShortcutsOpen(true)}
                             onAmbientClick={() => setIsAmbientSoundOpen(true)}
-                            onTriggerSync={triggerSync}
-                            isOffline={isOffline}
                         />
 
                         <AnimatePresence>
@@ -281,18 +261,16 @@ const AuraAppContent = () => {
 
 export default function App() {
     return (
-        <AuthProvider>
-            <UIProvider>
-                <ThemeProvider>
-                    <SettingsProvider>
-                        <GroveProvider>
-                            <TaskProvider>
-                                <AuraAppContent />
-                            </TaskProvider>
-                        </GroveProvider>
-                    </SettingsProvider>
-                </ThemeProvider>
-            </UIProvider>
-        </AuthProvider>
+        <UIProvider>
+            <ThemeProvider>
+                <SettingsProvider>
+                    <GroveProvider>
+                        <TaskProvider>
+                            <AuraAppContent />
+                        </TaskProvider>
+                    </GroveProvider>
+                </SettingsProvider>
+            </ThemeProvider>
+        </UIProvider>
     );
 }

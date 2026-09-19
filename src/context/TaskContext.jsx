@@ -1,15 +1,19 @@
-import React, { createContext, useContext, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
 import { motivationalQuotes, demoTasks } from '../utils/constants';
 import { getTodayDateString } from '../utils/dateUtils';
 import { useUI } from './UIContext';
-import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
 import { useGrove } from './GroveContext';
-import { api } from '../utils/apiClient';
 import { useTaskOperations } from '../hooks/useTaskOperations';
 import { useStatsAndGrove } from '../hooks/useStatsAndGrove';
 import { useRitualsAndNotifications } from '../hooks/useRitualsAndNotifications';
+import {
+    recordDailySnapshot,
+    getRollingSnapshots,
+    getSnapshotDataById,
+    exportSafetyVaultToFile
+} from '../utils/snapshotVault';
 
 const TaskContext = createContext(null);
 
@@ -21,7 +25,7 @@ export const TaskProvider = ({ children, ui: propUI }) => {
     const settings = useSettings();
     const groveCtx = useGrove();
 
-    // Task-specific persistent storage
+    // Task-specific persistent local storage
     const [tasks, setTasks, tasksLoaded] = usePreferences('aura-tasks', demoTasks);
     const [templates, setTemplates, templatesLoaded] = usePreferences('aura-templates', []);
     const [tomorrowSeed, setTomorrowSeed] = usePreferences('aura-tomorrow-seed', null);
@@ -159,13 +163,8 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         ui
     });
 
-    // Cloud Synchronization via AuthContext & ApiClient
-    const auth = useAuth();
-    const { user, setSyncStatus, setLastSyncedAt } = auth || {};
-    const initialPullDoneRef = useRef(false);
-
-    // Build the sync payload from all contexts
-    const buildSyncPayload = useCallback(() => ({
+    // Build complete state payload for snapshot and safety vault
+    const buildFullSnapshotPayload = useCallback(() => ({
         tasks,
         templates,
         stats: groveCtx.stats,
@@ -187,92 +186,40 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         settings.autoArchiveEnabled, settings.notificationsEnabled
     ]);
 
-    // Initial pull when user logs in
+    // Record rolling daily snapshot
     useEffect(() => {
-        if (!user || !allDataLoaded) {
-            initialPullDoneRef.current = false;
-            return;
-        }
-
-        const pullCloudData = async () => {
-            try {
-                setSyncStatus?.('syncing');
-                const res = await api.sync.pull();
-                if (res && res.data) {
-                    if (res.data.tasks) setTasks(res.data.tasks);
-                    if (res.data.templates) setTemplates(res.data.templates);
-                    if (res.data.stats) groveCtx.setStats(res.data.stats);
-                    if (res.data.unlockedAchievements) groveCtx.setUnlockedAchievements(res.data.unlockedAchievements);
-                    if (res.data.grove) groveCtx.setGrove(res.data.grove);
-                    if (res.data.customCategories) settings.setCustomCategories(res.data.customCategories);
-                    if (res.data.journalEntries) settings.setJournalEntries(res.data.journalEntries);
-                    if (res.data.settings?.shutdownTime) settings.setShutdownTime(res.data.settings.shutdownTime);
-                    if (res.data.settings?.soundEffectsEnabled !== undefined) settings.setSoundEffectsEnabled(res.data.settings.soundEffectsEnabled);
-                    if (res.data.settings?.autoArchiveEnabled !== undefined) settings.setAutoArchiveEnabled(res.data.settings.autoArchiveEnabled);
-                    if (res.data.settings?.notificationsEnabled !== undefined) settings.setNotificationsEnabled(res.data.settings.notificationsEnabled);
-                    setLastSyncedAt?.(res.lastSyncedAt || new Date().toISOString());
-                } else if (res && res.isNewUser) {
-                    await api.sync.push(buildSyncPayload());
-                    setLastSyncedAt?.(new Date().toISOString());
-                }
-                setSyncStatus?.('synced');
-            } catch (err) {
-                console.warn('Initial cloud pull:', err);
-                setSyncStatus?.(err.isOffline ? 'offline' : 'synced');
-            } finally {
-                initialPullDoneRef.current = true;
-            }
-        };
-
-        pullCloudData();
-    }, [user, allDataLoaded, groveCtx, settings, setTasks, setTemplates, setSyncStatus, setLastSyncedAt, buildSyncPayload]);
-
-    const lastPayloadStringRef = useRef('');
-
-    // Debounced push to cloud whenever state changes
-    useEffect(() => {
-        if (!user || !allDataLoaded || !initialPullDoneRef.current) return;
-
-        const timer = setTimeout(async () => {
-            try {
-                const payload = buildSyncPayload();
-                const payloadString = JSON.stringify(payload);
-                if (payloadString === lastPayloadStringRef.current) {
-                    return; // No mutations detected, bypass redundant sync
-                }
-
-                setSyncStatus?.('syncing');
-                const res = await api.sync.push(payload);
-                lastPayloadStringRef.current = payloadString;
-                if (res && res.lastSyncedAt) {
-                    setLastSyncedAt?.(res.lastSyncedAt);
-                }
-                setSyncStatus?.('synced');
-            } catch (err) {
-                console.warn('Auto-sync error:', err);
-                setSyncStatus?.(err.isOffline ? 'offline' : 'synced');
-            }
-        }, 1000);
-
+        if (!allDataLoaded) return;
+        const timer = setTimeout(() => {
+            recordDailySnapshot(buildFullSnapshotPayload());
+        }, 1500);
         return () => clearTimeout(timer);
-    }, [user, allDataLoaded, buildSyncPayload, setSyncStatus, setLastSyncedAt]);
+    }, [allDataLoaded, buildFullSnapshotPayload]);
 
-    // Manual on-demand sync trigger
-    const triggerSync = useCallback(async () => {
-        if (!user) return;
-        try {
-            setSyncStatus?.('syncing');
-            const res = await api.sync.push(buildSyncPayload());
-            if (res && res.lastSyncedAt) {
-                setLastSyncedAt?.(res.lastSyncedAt);
-            }
-            setSyncStatus?.('synced');
-            ui?.setToastMessage?.('Cloud synced successfully');
-        } catch (err) {
-            setSyncStatus?.(err.isOffline ? 'offline' : 'synced');
-            ui?.setToastMessage?.(err.message || 'Sync failed');
+    const restoreSnapshotById = useCallback((snapshotId) => {
+        const data = getSnapshotDataById(snapshotId);
+        if (!data) return false;
+        if (data.tasks) setTasks(data.tasks);
+        if (data.templates) setTemplates(data.templates);
+        if (data.stats) groveCtx.setStats(data.stats);
+        if (data.unlockedAchievements) groveCtx.setUnlockedAchievements(data.unlockedAchievements);
+        if (data.grove) groveCtx.setGrove(data.grove);
+        if (data.customCategories) settings.setCustomCategories(data.customCategories);
+        if (data.journalEntries) settings.setJournalEntries(data.journalEntries);
+        if (data.settings?.shutdownTime) settings.setShutdownTime(data.settings.shutdownTime);
+        if (data.settings?.soundEffectsEnabled !== undefined) settings.setSoundEffectsEnabled(data.settings.soundEffectsEnabled);
+        if (data.settings?.autoArchiveEnabled !== undefined) settings.setAutoArchiveEnabled(data.settings.autoArchiveEnabled);
+        if (data.settings?.notificationsEnabled !== undefined) settings.setNotificationsEnabled(data.settings.notificationsEnabled);
+        ui.setToastMessage({ type: 'success', text: 'Snapshot restored successfully!' });
+        return true;
+    }, [setTasks, setTemplates, groveCtx, settings, ui]);
+
+    const handleSaveSafetyVault = useCallback(async () => {
+        const payload = buildFullSnapshotPayload();
+        const res = await exportSafetyVaultToFile(payload);
+        if (res && res.success) {
+            ui.setToastMessage({ type: 'success', text: 'Safety Vault saved to disk!' });
         }
-    }, [user, buildSyncPayload, ui, setSyncStatus, setLastSyncedAt]);
+    }, [buildFullSnapshotPayload, ui]);
 
     const dailyQuote = useMemo(() => {
         const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
@@ -297,14 +244,16 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         handlePlantSeed,
         finishPlanting,
         handleFocusComplete,
-        // Rituals
+        // Rituals & Safety Vault
         shutdownRitual,
         setShutdownRitual,
         shutdownRitualMessages,
         handleExport,
         handleImportFile,
-        triggerSync,
-        testShutdownReminder
+        testShutdownReminder,
+        getRollingSnapshots,
+        restoreSnapshotById,
+        handleSaveSafetyVault
     };
 
     return (

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-cache-v1';
+const CACHE_NAME = 'aura-offline-v3';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -8,7 +8,7 @@ const STATIC_ASSETS = [
     '/icon-512.svg'
 ];
 
-// Install: pre-cache application shell
+// Install: pre-cache application core shell
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
@@ -17,7 +17,7 @@ self.addEventListener('install', (event) => {
     );
 });
 
-// Activate: clean up old caches
+// Activate: clean up old caches and claim all clients immediately
 self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keys) => {
@@ -28,34 +28,52 @@ self.addEventListener('activate', (event) => {
     );
 });
 
-// Fetch: stale-while-revalidate for local assets, network-first for external APIs
+// Fetch: Cache-First with background revalidation for maximum offline reliability
 self.addEventListener('fetch', (event) => {
-    const url = new URL(event.request.url);
-
-    // Don't intercept non-GET requests, API endpoints, or browser extension requests
-    if (event.request.method !== 'GET' || !url.protocol.startsWith('http') || url.pathname.startsWith('/api')) {
+    // Only intercept GET requests
+    if (event.request.method !== 'GET') {
         return;
     }
 
-    // Cache-first / Stale-While-Revalidate strategy
+    const url = new URL(event.request.url);
+
+    // Skip chrome-extension requests
+    if (!url.protocol.startsWith('http')) {
+        return;
+    }
+
     event.respondWith(
         caches.match(event.request).then((cachedResponse) => {
-            const fetchPromise = fetch(event.request).then((networkResponse) => {
+            if (cachedResponse) {
+                // Return cached resource immediately, and update cache in background if online
+                fetch(event.request).then((networkResponse) => {
+                    if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+                        const copy = networkResponse.clone();
+                        caches.open(CACHE_NAME).then((cache) => {
+                            cache.put(event.request, copy);
+                        });
+                    }
+                }).catch(() => {
+                    // Ignore background network errors when offline
+                });
+                return cachedResponse;
+            }
+
+            // If not cached, fetch from network and cache the response
+            return fetch(event.request).then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
-                    const responseToCache = networkResponse.clone();
+                    const copy = networkResponse.clone();
                     caches.open(CACHE_NAME).then((cache) => {
-                        cache.put(event.request, responseToCache);
+                        cache.put(event.request, copy);
                     });
                 }
                 return networkResponse;
             }).catch(() => {
-                // If offline and request is for page navigation, return cached root/index
-                if (event.request.mode === 'navigate') {
+                // If network fails (completely offline) and request is page navigation, return index.html
+                if (event.request.mode === 'navigate' || event.request.destination === 'document') {
                     return caches.match('/index.html') || caches.match('/');
                 }
             });
-
-            return cachedResponse || fetchPromise;
         })
     );
 });

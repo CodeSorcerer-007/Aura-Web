@@ -110,3 +110,20 @@ body {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
+/* --- Window Controls Overlay (PWA Desktop Titlebar) --- */
+.wco-drag-region {
+  -webkit-app-region: drag;
+  app-region: drag;
+}
+
+.wco-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+
+@supports (padding-top: env(titlebar-area-height, 0px)) {
+  .titlebar-safe-top {
+    padding-top: max(env(titlebar-area-height, 0px), 0.75rem);
+  }
+}

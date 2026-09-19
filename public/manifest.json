@@ -1,7 +1,8 @@
 {
+  "id": "/",
   "short_name": "Aura",
   "name": "Aura — Mindful Productivity & Task Flow",
-  "description": "A mindful productivity companion featuring visual time blocking, ambient soundscapes, personal grove, and flow management.",
+  "description": "A mindful offline productivity companion featuring visual time blocking, ambient soundscapes, personal grove, and flow management.",
   "icons": [
     {
       "src": "/icon-192.svg",
@@ -26,6 +27,24 @@
   "background_color": "#000000",
   "theme_color": "#000000",
   "display": "standalone",
-  "orientation": "portrait-primary",
-  "categories": ["productivity", "utilities", "lifestyle"]
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "categories": ["productivity", "utilities", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Flow",
+      "url": "/?view=flow",
+      "description": "Open Daily Flow"
+    },
+    {
+      "name": "Grove",
+      "url": "/?view=grove",
+      "description": "Visit Mindful Grove"
+    },
+    {
+      "name": "Journal",
+      "url": "/?view=journal",
+      "description": "Reflect in Daily Journal"
+    }
+  ]
 }

@@ -1,26 +1,18 @@
 {
   "name": "aura-webapp",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "server": "node server/index.js",
-    "dev:all": "concurrently -k -p \"[{name}]\" -n \"Vite,Server\" -c \"cyan.bold,green.bold\" \"vite\" \"node server/index.js\"",
     "build": "vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview --port 4173 --host",
+    "lint": "oxlint"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.3",
     "autoprefixer": "^10.6.1",
-    "bcryptjs": "^3.0.3",
-    "concurrently": "^10.0.5",
-    "cors": "^2.8.6",
-    "dotenv": "^18.0.0",
-    "express": "^5.2.1",
     "framer-motion": "^13.4.0",
-    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.47.0",
     "postcss": "^8.5.28",
     "react": "^19.2.8",

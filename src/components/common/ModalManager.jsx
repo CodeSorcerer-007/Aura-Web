@@ -19,11 +19,9 @@ const WinModal = lazy(() => import('../modals/WinModal').then(m => ({ default: m
 const TemplateSuggestionModal = lazy(() => import('../modals/TemplateSuggestionModal').then(m => ({ default: m.TemplateSuggestionModal })));
 const TaskDetailModal = lazy(() => import('../modals/TaskDetailModal').then(m => ({ default: m.TaskDetailModal })));
 const ShortcutsModal = lazy(() => import('../modals/ShortcutsModal').then(m => ({ default: m.ShortcutsModal })));
-const ChangePasswordModal = lazy(() => import('../modals/ChangePasswordModal').then(m => ({ default: m.ChangePasswordModal })));
 const AmbientSoundModal = lazy(() => import('../modals/AmbientSoundModal').then(m => ({ default: m.AmbientSoundModal })));
 const BrainSweepModal = lazy(() => import('../modals/BrainSweepModal').then(m => ({ default: m.BrainSweepModal })));
 const HarvestCardModal = lazy(() => import('../modals/HarvestCardModal').then(m => ({ default: m.HarvestCardModal })));
-const EntrancePage = lazy(() => import('../auth/EntrancePage').then(m => ({ default: m.EntrancePage })));
 
 // Eagerly loaded (always visible)
 import { PlantingAnimation } from './PlantingAnimation';
@@ -89,7 +87,10 @@ export const ModalManager = () => {
         handleFocusComplete,
         handleExport,
         handleImportFile,
-        testShutdownReminder
+        testShutdownReminder,
+        getRollingSnapshots,
+        restoreSnapshotById,
+        handleSaveSafetyVault
     } = useTasks();
 
     const {
@@ -171,6 +172,9 @@ export const ModalManager = () => {
                         notificationsEnabled={notificationsEnabled}
                         onSetNotificationsEnabled={handleSetNotifications}
                         onTestShutdownReminder={testShutdownReminder}
+                        onSaveSafetyVault={handleSaveSafetyVault}
+                        onRestoreSnapshot={restoreSnapshotById}
+                        getRollingSnapshots={getRollingSnapshots}
                     />
                 </LazyModal>
             </AnimatePresence>
@@ -323,12 +327,6 @@ export const ModalManager = () => {
                     />
                 </LazyModal>
             </AnimatePresence>
-
-            {/* Auth & Cloud */}
-            <Suspense fallback={ModalFallback}>
-                <EntrancePage />
-                <ChangePasswordModal />
-            </Suspense>
 
             {/* Ambient Sound */}
             <LazyModal isOpen={isAmbientSoundOpen}>

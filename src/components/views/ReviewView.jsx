@@ -3,25 +3,10 @@ import { motion } from 'framer-motion';
 import { defaultCategories, achievementsList } from '../../utils/constants';
 import { formatDate } from '../../utils/dateUtils';
 import { TrophyIcon } from '../common/Icons';
+import { ProductivityHeatmap } from './ProductivityHeatmap';
 
 export const ReviewView = ({ tasks, achievements, allCategories, stats, onDeleteStale, onRecommitTask, onSnoozeTask, onForgiveTask }) => {
     const completedTasks = tasks.filter(t => t.completed && t.completionDate);
-
-    const heatmapData = useMemo(() => {
-        const data = new Map();
-        for (let i = 0; i < 365; i++) {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            data.set(date.toISOString().split('T')[0], { level: 0 });
-        }
-        completedTasks.forEach(task => {
-            const date = task.completionDate;
-            if (data.has(date)) {
-                data.get(date).level++;
-            }
-        });
-        return Array.from(data.entries()).reverse();
-    }, [completedTasks]);
     
     const categoryData = useMemo(() => {
         const data = completedTasks.reduce((acc, task) => {
@@ -69,29 +54,8 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
                 <p className="text-[var(--color-text-secondary)]">Reflect on your productivity and progress.</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg">
-                    <h3 className="text-xl font-bold mb-4">Productivity Heatmap</h3>
-                    <div className="flex flex-wrap gap-1">
-                        {heatmapData.map(([date, data]) => (
-                            <div 
-                                key={date} 
-                                className={`w-3 h-3 rounded-sm ${data.level > 0 ? 'bg-teal-400' : 'bg-[var(--color-bg)]'}`}
-                                style={{ opacity: data.level > 0 ? Math.min(0.25 + data.level * 0.25, 1) : 0.2 }}
-                                title={`${data.level} tasks on ${formatDate(date)}`}
-                            />
-                        ))}
-                    </div>
-                </div>
-
-                <div className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg">
-                    <h3 className="text-xl font-bold mb-4">Current Streak</h3>
-                    <div className="text-center">
-                        <p className="text-6xl font-bold text-amber-400">{stats.streak}</p>
-                        <p className="text-[var(--color-text-secondary)]">day{stats.streak !== 1 && 's'}</p>
-                    </div>
-                </div>
-            </div>
+            {/* GitHub-style Full Year Productivity Heatmap */}
+            <ProductivityHeatmap completedTasks={completedTasks} streak={stats?.streak || 0} />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg">

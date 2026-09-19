@@ -370,14 +370,31 @@ export const useTaskOperations = ({
     const toggleSubtask = useCallback((taskId, subtaskText) => {
         setTasks(prev => prev.map(task => {
             if (task.id === taskId) {
-                const newSubtasks = task.subtasks.map(st =>
-                    st.text === subtaskText ? { ...st, completed: !st.completed } : st
-                );
+                let isChecked = false;
+                const newSubtasks = task.subtasks.map(st => {
+                    if (st.text === subtaskText) {
+                        isChecked = !st.completed;
+                        return { ...st, completed: !st.completed };
+                    }
+                    return st;
+                });
+
+                const completedCount = newSubtasks.filter(st => st.completed).length;
+                const totalCount = newSubtasks.length;
+
+                if (playSoundEffect) {
+                    playSoundEffect('subtask', false, {
+                        completedCount,
+                        totalCount,
+                        isChecked
+                    });
+                }
+
                 return { ...task, subtasks: newSubtasks };
             }
             return task;
         }));
-    }, [setTasks]);
+    }, [setTasks, playSoundEffect]);
 
     return {
         addTask,

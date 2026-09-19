@@ -8,8 +8,8 @@ import {
     ZapIcon,
     HelpCircleIcon
 } from './Icons';
-import { Headphones, WifiOff } from 'lucide-react';
-import { UserProfileMenu } from './UserProfileMenu';
+import { Headphones } from 'lucide-react';
+import { InstallAppButton } from './InstallAppButton';
 
 export const Header = ({
     momentumProgress,
@@ -19,20 +19,18 @@ export const Header = ({
     onAmbientClick,
     dailyQuote,
     onShare,
-    onShortcutsClick,
-    onTriggerSync,
-    isOffline = false
+    onShortcutsClick
 }) => (
     <motion.header 
         initial={{ opacity: 0, y: -20 }} 
         animate={{ opacity: 1, y: 0 }} 
         transition={{ duration: 0.5 }} 
-        className="text-center mb-8 relative"
+        className="text-center mb-8 relative wco-drag-region titlebar-safe-top"
     >
-        <div className="absolute top-0 left-0 flex items-center gap-2 sm:gap-3.5">
+        <div className="absolute top-0 left-0 flex items-center gap-2 sm:gap-3.5 wco-no-drag">
             <button 
                 onClick={onMindfulClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm" 
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer" 
                 title="Mindful Minute"
                 aria-label="Mindful Minute meditation timer"
             >
@@ -40,7 +38,7 @@ export const Header = ({
             </button>
             <button 
                 onClick={onAmbientClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-cyan-300 border border-white/5 transition-all shadow-sm" 
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-cyan-300 border border-white/5 transition-all shadow-sm cursor-pointer" 
                 title="Ambient Soundscapes & Sleep Timer"
                 aria-label="Ambient soundscapes and sleep timer"
             >
@@ -48,18 +46,18 @@ export const Header = ({
             </button>
             <button 
                 onClick={onShare} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm" 
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer" 
                 title="Share Today's Wins"
                 aria-label="Share today's wins summary"
             >
                 <Share2Icon className="w-5 h-5"/>
             </button>
         </div>
-        <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-3">
-            <UserProfileMenu onTriggerSync={onTriggerSync} />
+        <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-3 wco-no-drag">
+            <InstallAppButton />
             <button 
                 onClick={onShortcutsClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm"
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer"
                 title="Shortcuts (?)"
                 aria-label="Keyboard shortcuts"
             >
@@ -67,7 +65,7 @@ export const Header = ({
             </button>
             <button 
                 onClick={onSearchClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm"
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer"
                 title="Search (Ctrl+P)"
                 aria-label="Search tasks"
             >
@@ -75,26 +73,13 @@ export const Header = ({
             </button>
             <button 
                 onClick={onSettingsClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm"
+                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer"
                 title="Settings"
                 aria-label="Application settings"
             >
                 <SettingsIcon className="w-5 h-5"/>
             </button>
         </div>
-
-        {isOffline && (
-            <div 
-                id="offline-sanctuary-badge"
-                className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 rounded-full text-xs font-medium bg-amber-500/15 border border-amber-400/30 text-amber-300 backdrop-blur-md shadow-sm"
-                title="Offline Sanctuary active: all changes are safely saved locally"
-                role="status"
-                aria-live="polite"
-            >
-                <WifiOff size={13} className="text-amber-400 animate-pulse" />
-                <span>Offline Sanctuary</span>
-            </div>
-        )}
 
         <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)] font-display">
             <span className="aura-gradient-text">Aura</span>
