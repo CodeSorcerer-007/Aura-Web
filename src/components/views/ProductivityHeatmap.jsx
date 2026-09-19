@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { formatDate } from '../../utils/dateUtils';
 import { Flame, CheckCircle2, Calendar } from 'lucide-react';
 
@@ -21,6 +21,7 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
     const today = useMemo(() => new Date(), []);
     const currentYear = today.getFullYear();
     const todayStr = useMemo(() => formatLocalDate(today), [today]);
+    const scrollContainerRef = useRef(null);
 
     // Available years: current year, previous year, and any years with completed tasks
     const availableYears = useMemo(() => {
@@ -36,6 +37,15 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
 
     const [selectedYear, setSelectedYear] = useState(currentYear);
     const [hoveredDay, setHoveredDay] = useState(null);
+
+    // Auto-scroll mobile view to the current month on mount/year switch
+    useEffect(() => {
+        if (scrollContainerRef.current && selectedYear === currentYear) {
+            const currentMonth = today.getMonth();
+            const scrollTarget = Math.max(0, (currentMonth / 12) * 730 - 60);
+            scrollContainerRef.current.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+        }
+    }, [selectedYear, currentYear, today]);
 
     // Map completion dates to task counts
     const completedMap = useMemo(() => {
@@ -172,8 +182,15 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
                 </div>
             </div>
 
+            {/* Mobile Scroll Hint */}
+            <div className="flex sm:hidden justify-end mb-1">
+                <span className="text-[10px] text-emerald-400/80 font-mono flex items-center gap-1">
+                    <span>←</span> Swipe to view Jan–Dec <span>→</span>
+                </span>
+            </div>
+
             {/* GitHub Calendar Container (Jan to Dec) */}
-            <div className="overflow-x-auto pb-2 scrollbar-thin">
+            <div ref={scrollContainerRef} className="overflow-x-auto pb-2 scrollbar-thin">
                 <div className="inline-block min-w-full">
                     {/* Month labels header (Jan to Dec) */}
                     <div className="relative h-4 mb-1.5 text-[10px] text-[var(--color-text-secondary)] font-medium select-none" style={{ marginLeft: '28px' }}>

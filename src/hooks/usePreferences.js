@@ -21,12 +21,20 @@ export const usePreferences = (key, initialValue) => {
             setStoredValue(prev => {
                 const valueToStore = value instanceof Function ? value(prev) : value;
                 if (typeof window !== 'undefined') {
-                    window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                    try {
+                        window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                    } catch (storageErr) {
+                        if (storageErr.name === 'QuotaExceededError' || storageErr.code === 22) {
+                            console.warn(`[Aura Storage] LocalStorage quota reached for key "${key}". State remains in memory.`);
+                        } else {
+                            console.error(`Error writing preference ${key}:`, storageErr);
+                        }
+                    }
                 }
                 return valueToStore;
             });
         } catch (e) {
-            console.error(`Error setting preference ${key}`, e);
+            console.error(`Error setting preference ${key}:`, e);
         }
     }, [key]);
 

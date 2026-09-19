@@ -18,6 +18,7 @@ import { XIcon } from './components/common/Icons';
 
 import { FlowView } from './components/views/FlowView';
 import SkipToContent from './components/common/SkipToContent';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const ConstellationsView = React.lazy(() => import('./components/views/ConstellationsView').then(m => ({ default: m.ConstellationsView })));
 const GroveView = React.lazy(() => import('./components/views/GroveView').then(m => ({ default: m.GroveView })));
@@ -42,6 +43,7 @@ const AuraAppContent = () => {
         setFocusTaskId,
         setDetailModal,
         togglePin,
+        setToastMessage,
     } = useUI();
 
     const {
@@ -119,7 +121,26 @@ const AuraAppContent = () => {
                 return () => clearTimeout(timer);
             }
         } catch {}
-    }, [allDataLoaded]);
+    }, [allDataLoaded, tasks, currentView]);
+
+    // Audio Autoplay Guard: Re-engagement Toast when ambient audio is active but suspended
+    useEffect(() => {
+        const handleAmbientState = async (e) => {
+            if (e.detail?.isSuspended) {
+                const { resumeAudioContext } = await import('./hooks/useAmbientSound');
+                setToastMessage({
+                    type: 'warning',
+                    text: '🎧 Soundscape waiting for gesture — click anywhere to enable audio',
+                    actionText: 'Enable',
+                    onAction: async () => {
+                        await resumeAudioContext();
+                    }
+                });
+            }
+        };
+        window.addEventListener('aura-ambient-state-changed', handleAmbientState);
+        return () => window.removeEventListener('aura-ambient-state-changed', handleAmbientState);
+    }, [setToastMessage]);
 
     const filteredTasks = useMemo(() => {
         const nonArchived = tasks.filter(t => !t.isArchived);
@@ -244,77 +265,79 @@ const AuraAppContent = () => {
                             )}
                         </AnimatePresence>
 
-                        <React.Suspense fallback={null}>
-                            <AnimatePresence mode="wait">
-                                {currentView === 'flow' && (
-                                    <FlowView
-                                        key="flow"
-                                        tasks={filteredTasks}
-                                        toggleTask={toggleTask}
-                                        deleteTask={deleteTask}
-                                        onFocus={setFocusTaskId}
-                                        activeFilter={activeFilter}
-                                        setActiveFilter={setActiveFilter}
-                                        onReorder={reorderTask}
-                                        onReorderSectionTasks={reorderSectionTasks}
-                                        onToggleSubtask={toggleSubtask}
-                                        allTasks={tasks}
-                                        allCategories={allCategories}
-                                        onOpenDetail={(id) => setDetailModal({ isOpen: true, taskId: id })}
-                                        onTogglePin={togglePin}
-                                        onArchive={archiveTask}
-                                        monolithTaskId={monolithTaskId}
-                                        setMonolithTaskId={setMonolithTaskId}
-                                        tunnelVision={tunnelVision}
-                                        setTunnelVision={setTunnelVision}
-                                        moveTaskToSection={moveTaskToSection}
-                                        stats={stats}
-                                    />
-                                )}
-                                {currentView === 'constellations' && (
-                                    <ConstellationsView
-                                        key="constellations"
-                                        tasks={tasks}
-                                        toggleTask={toggleTask}
-                                        onSaveTemplate={saveTemplate}
-                                        templates={templates}
-                                        allCategories={allCategories}
-                                    />
-                                )}
-                                {currentView === 'grove' && (
-                                    <GroveView
-                                        key="grove"
-                                        tasks={tasks}
-                                        grove={grove}
-                                        goldenSeeds={stats.goldenSeeds}
-                                        onPlantSeed={handlePlantSeed}
-                                        allCategories={allCategories}
-                                        onOpenHarvestCard={() => setIsBrainSweepOpen(false)}
-                                    />
-                                )}
-                                {currentView === 'journal' && (
-                                    <JournalView
-                                        key="journal"
-                                        journalEntries={journalEntries}
-                                        setJournalEntries={setJournalEntries}
-                                        completedTasks={tasks.filter(t => t.completed && !t.isArchived)}
-                                    />
-                                )}
-                                {currentView === 'review' && (
-                                    <ReviewView
-                                        key="review"
-                                        tasks={tasks}
-                                        achievements={unlockedAchievements}
-                                        allCategories={allCategories}
-                                        stats={stats}
-                                        onDeleteStale={deleteTask}
-                                        onRecommitTask={handleRecommitStaleTask}
-                                        onSnoozeTask={handleSnoozeStaleTask}
-                                        onForgiveTask={handleForgiveStaleTask}
-                                    />
-                                )}
-                            </AnimatePresence>
-                        </React.Suspense>
+                        <ErrorBoundary>
+                            <React.Suspense fallback={null}>
+                                <AnimatePresence mode="wait">
+                                    {currentView === 'flow' && (
+                                        <FlowView
+                                            key="flow"
+                                            tasks={filteredTasks}
+                                            toggleTask={toggleTask}
+                                            deleteTask={deleteTask}
+                                            onFocus={setFocusTaskId}
+                                            activeFilter={activeFilter}
+                                            setActiveFilter={setActiveFilter}
+                                            onReorder={reorderTask}
+                                            onReorderSectionTasks={reorderSectionTasks}
+                                            onToggleSubtask={toggleSubtask}
+                                            allTasks={tasks}
+                                            allCategories={allCategories}
+                                            onOpenDetail={(id) => setDetailModal({ isOpen: true, taskId: id })}
+                                            onTogglePin={togglePin}
+                                            onArchive={archiveTask}
+                                            monolithTaskId={monolithTaskId}
+                                            setMonolithTaskId={setMonolithTaskId}
+                                            tunnelVision={tunnelVision}
+                                            setTunnelVision={setTunnelVision}
+                                            moveTaskToSection={moveTaskToSection}
+                                            stats={stats}
+                                        />
+                                    )}
+                                    {currentView === 'constellations' && (
+                                        <ConstellationsView
+                                            key="constellations"
+                                            tasks={tasks}
+                                            toggleTask={toggleTask}
+                                            onSaveTemplate={saveTemplate}
+                                            templates={templates}
+                                            allCategories={allCategories}
+                                        />
+                                    )}
+                                    {currentView === 'grove' && (
+                                        <GroveView
+                                            key="grove"
+                                            tasks={tasks}
+                                            grove={grove}
+                                            goldenSeeds={stats.goldenSeeds}
+                                            onPlantSeed={handlePlantSeed}
+                                            allCategories={allCategories}
+                                            onOpenHarvestCard={() => setIsBrainSweepOpen(false)}
+                                        />
+                                    )}
+                                    {currentView === 'journal' && (
+                                        <JournalView
+                                            key="journal"
+                                            journalEntries={journalEntries}
+                                            setJournalEntries={setJournalEntries}
+                                            completedTasks={tasks.filter(t => t.completed && !t.isArchived)}
+                                        />
+                                    )}
+                                    {currentView === 'review' && (
+                                        <ReviewView
+                                            key="review"
+                                            tasks={tasks}
+                                            achievements={unlockedAchievements}
+                                            allCategories={allCategories}
+                                            stats={stats}
+                                            onDeleteStale={deleteTask}
+                                            onRecommitTask={handleRecommitStaleTask}
+                                            onSnoozeTask={handleSnoozeStaleTask}
+                                            onForgiveTask={handleForgiveStaleTask}
+                                        />
+                                    )}
+                                </AnimatePresence>
+                            </React.Suspense>
+                        </ErrorBoundary>
                     </main>
 
                     {currentView === 'flow' && (

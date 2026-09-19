@@ -18,15 +18,15 @@ export const BottomNav = ({ currentView, setCurrentView }) => {
     ];
 
     const bottomClass = currentView === 'flow'
-        ? 'bottom-[calc(7.2rem+env(safe-area-inset-bottom))]'
-        : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
+        ? 'bottom-[calc(5.2rem+env(safe-area-inset-bottom))] sm:bottom-[calc(7.2rem+env(safe-area-inset-bottom))]'
+        : 'bottom-[calc(1rem+env(safe-area-inset-bottom))] sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
 
     return (
         <nav 
             aria-label="Main Navigation"
-            className={`fixed ${bottomClass} left-0 right-0 z-20 flex justify-center px-4 pointer-events-none transition-all duration-300 ease-out`}
+            className={`fixed ${bottomClass} left-0 right-0 z-20 flex justify-center px-2 sm:px-4 pointer-events-none transition-all duration-300 ease-out`}
         >
-            <div className="flex items-center gap-1 sm:gap-1.5 aura-glass-floating rounded-full p-1.5 sm:p-2 pointer-events-auto shadow-2xl">
+            <div className="flex items-center gap-0.5 sm:gap-1.5 aura-glass-floating rounded-full p-1 sm:p-2 pointer-events-auto shadow-2xl">
                 {navItems.map(item => {
                     const isActive = currentView === item.id;
                     return (
@@ -35,7 +35,7 @@ export const BottomNav = ({ currentView, setCurrentView }) => {
                             onClick={() => setCurrentView(item.id)}
                             aria-label={item.label}
                             aria-current={isActive ? 'page' : undefined}
-                            className={`relative px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                            className={`relative px-2.5 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
                                 isActive 
                                     ? 'text-[var(--color-text-primary)] font-semibold' 
                                     : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5'

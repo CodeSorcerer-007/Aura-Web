@@ -314,6 +314,8 @@ export const ModalManager = () => {
                         isOpen={isCommandPaletteOpen}
                         onClose={() => setIsCommandPaletteOpen(false)}
                         commands={commands}
+                        tasks={tasks}
+                        onTaskSelect={(id) => setDetailModal({ isOpen: true, taskId: id })}
                     />
                 </LazyModal>
             </AnimatePresence>

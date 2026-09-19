@@ -144,8 +144,16 @@ export const useRitualsAndNotifications = ({
         }
     }, [shutdownRitual, shutdownRitualMessages, ui]);
 
-    // Export Handler
-    const handleExport = useCallback(() => {
+    // Export Handler with Lossless Attachments
+    const handleExport = useCallback(async () => {
+        let vaultAttachments = {};
+        try {
+            const { getAllStoredAttachments } = await import('../utils/db');
+            vaultAttachments = await getAllStoredAttachments();
+        } catch (err) {
+            console.warn('Could not read attachments for export:', err);
+        }
+
         const data = {
             tasks,
             templates,
@@ -158,14 +166,18 @@ export const useRitualsAndNotifications = ({
             shutdownTime,
             soundEffectsEnabled,
             autoArchiveEnabled,
-            notificationsEnabled
+            notificationsEnabled,
+            ...(Object.keys(vaultAttachments).length > 0 ? { vaultAttachments } : {})
         };
-        const jsonString = `data:text/json;charset=utf-8,${encodeURIComponent(JSON.stringify(data, null, 2))}`;
+        const jsonString = JSON.stringify(data, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
-        link.href = jsonString;
+        link.href = url;
         link.download = `aura-backup-${getTodayDateString()}.json`;
         link.click();
-        ui.setToastMessage({ type: 'success', text: 'Data exported successfully!' });
+        URL.revokeObjectURL(url);
+        ui.setToastMessage({ type: 'success', text: 'Lossless backup exported successfully!' });
     }, [
         tasks,
         templates,
@@ -182,13 +194,13 @@ export const useRitualsAndNotifications = ({
         ui
     ]);
 
-    // Import Handler
+    // Import Handler with Lossless Attachments Rehydration
     const handleImportFile = useCallback((e) => {
         const file = e.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (event) => {
+        reader.onload = async (event) => {
             try {
                 const data = JSON.parse(event.target.result);
                 if (data.tasks) setTasks(data.tasks);
@@ -203,7 +215,18 @@ export const useRitualsAndNotifications = ({
                 if (data.soundEffectsEnabled !== undefined) setSoundEffectsEnabled(data.soundEffectsEnabled);
                 if (data.autoArchiveEnabled !== undefined) setAutoArchiveEnabled(data.autoArchiveEnabled);
                 if (data.notificationsEnabled !== undefined) setNotificationsEnabled(data.notificationsEnabled);
-                ui.setToastMessage({ type: 'success', text: 'Data imported successfully!' });
+
+                // Restore any embedded attachments or voice notes into IndexedDB
+                if (data.vaultAttachments && typeof data.vaultAttachments === 'object') {
+                    try {
+                        const { putAllAttachments } = await import('../utils/db');
+                        await putAllAttachments(data.vaultAttachments);
+                    } catch (attErr) {
+                        console.warn('Error restoring vault attachments:', attErr);
+                    }
+                }
+
+                ui.setToastMessage({ type: 'success', text: 'Data & attachments restored successfully!' });
             } catch (error) {
                 console.error("Error parsing import file:", error);
                 ui.setToastMessage({ type: 'error', text: 'Failed to import data. Invalid file format.' });

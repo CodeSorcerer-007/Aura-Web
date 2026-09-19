@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { defaultCategories } from '../../utils/constants';
+import { defaultCategories, demoTasks } from '../../utils/constants';
 import {
     XIcon,
     PaintbrushIcon,
@@ -281,6 +281,18 @@ export const SettingsModal = ({
                     </div>
                     <button onClick={onOpenArchive} className="w-full flex items-center justify-center gap-2 bg-[var(--color-bg)] p-3 rounded-lg mt-3 hover:bg-[var(--color-bg-secondary-hover)] cursor-pointer">
                         <ArchiveIcon className="w-5 h-5"/> View Archive
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            if (window.confirm('Reset tasks to the pristine mindful starter set? This will remove testing artifacts and seed fresh inspiring rituals.')) {
+                                localStorage.setItem('aura-tasks', JSON.stringify(demoTasks));
+                                window.location.reload();
+                            }
+                        }}
+                        className="w-full flex items-center justify-center gap-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 p-2.5 rounded-lg mt-3 text-xs font-semibold cursor-pointer transition-all"
+                    >
+                        <RotateCcw className="w-3.5 h-3.5" /> Reset to Mindful Starter Flow
                     </button>
                 </div>
             </motion.div>

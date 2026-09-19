@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
     WindIcon,
@@ -20,7 +20,30 @@ export const Header = ({
     dailyQuote,
     onShare,
     onShortcutsClick
-}) => (
+}) => {
+    const [isAmbientActive, setIsAmbientActive] = useState(false);
+    const [isAudioSuspended, setIsAudioSuspended] = useState(false);
+
+    useEffect(() => {
+        const handleAmbientState = (e) => {
+            setIsAmbientActive(!!e.detail?.isPlaying);
+            setIsAudioSuspended(!!e.detail?.isSuspended);
+        };
+        window.addEventListener('aura-ambient-state-changed', handleAmbientState);
+        return () => window.removeEventListener('aura-ambient-state-changed', handleAmbientState);
+    }, []);
+
+    const handleAmbientBtnClick = async () => {
+        if (isAudioSuspended) {
+            try {
+                const { resumeAudioContext } = await import('../../hooks/useAmbientSound');
+                await resumeAudioContext();
+            } catch {}
+        }
+        onAmbientClick();
+    };
+
+    return (
     <motion.header 
         initial={{ opacity: 0, y: -20 }} 
         animate={{ opacity: 1, y: 0 }} 
@@ -37,12 +60,34 @@ export const Header = ({
                 <WindIcon className="w-5 h-5"/>
             </button>
             <button 
-                onClick={onAmbientClick} 
-                className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-cyan-300 border border-white/5 transition-all shadow-sm cursor-pointer" 
-                title="Ambient Soundscapes & Sleep Timer"
-                aria-label="Ambient soundscapes and sleep timer"
+                onClick={handleAmbientBtnClick} 
+                className={`p-2 rounded-xl transition-all shadow-sm cursor-pointer relative ${
+                    isAmbientActive
+                        ? isAudioSuspended
+                            ? 'bg-amber-500/20 text-amber-300 border border-amber-400/50 shadow-[0_0_14px_rgba(245,158,11,0.35)] animate-pulse'
+                            : 'bg-cyan-500/25 text-cyan-200 border border-cyan-400/50 shadow-[0_0_12px_rgba(34,211,238,0.35)] scale-105'
+                        : 'bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-cyan-300 border border-white/5'
+                }`} 
+                title={
+                    isAmbientActive
+                        ? isAudioSuspended
+                            ? "Soundscape waiting for gesture — click to enable audio"
+                            : "Ambient Soundscapes & Sleep Timer (Active)"
+                        : "Ambient Soundscapes & Sleep Timer"
+                }
+                aria-label={
+                    isAudioSuspended
+                        ? "Soundscape paused by browser autoplay policy, click to enable audio"
+                        : "Ambient soundscapes and sleep timer"
+                }
             >
                 <Headphones className="w-5 h-5"/>
+                {isAmbientActive && (
+                    <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 pointer-events-none">
+                        <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${isAudioSuspended ? 'bg-amber-400 opacity-85' : 'bg-cyan-400 opacity-75'}`}></span>
+                        <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${isAudioSuspended ? 'bg-amber-400 shadow-[0_0_6px_#f59e0b]' : 'bg-cyan-400 shadow-[0_0_6px_#22d3ee]'}`}></span>
+                    </span>
+                )}
             </button>
             <button 
                 onClick={onShare} 
@@ -114,4 +159,5 @@ export const Header = ({
             </div>
         </div>
     </motion.header>
-);
+    );
+};

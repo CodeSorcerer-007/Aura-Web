@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-offline-v5';
+const CACHE_NAME = 'aura-offline-v6';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
@@ -37,13 +37,13 @@ self.addEventListener('fetch', (event) => {
 
     const url = new URL(event.request.url);
 
-    // Skip chrome-extension requests
+    // Skip non-http requests
     if (!url.protocol.startsWith('http')) {
         return;
     }
 
     event.respondWith(
-        caches.match(event.request).then((cachedResponse) => {
+        caches.match(event.request, { ignoreSearch: true }).then((cachedResponse) => {
             if (cachedResponse) {
                 // Return cached resource immediately, and update cache in background if online
                 fetch(event.request).then((networkResponse) => {
@@ -73,6 +73,8 @@ self.addEventListener('fetch', (event) => {
                 if (event.request.mode === 'navigate' || event.request.destination === 'document') {
                     return caches.match('/index.html') || caches.match('/');
                 }
+                // Fallback for assets by pathname without query string
+                return caches.match(url.pathname);
             });
         })
     );

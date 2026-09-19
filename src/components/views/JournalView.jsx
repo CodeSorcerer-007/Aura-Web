@@ -179,7 +179,7 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: -20 }} 
             transition={{ duration: 0.5 }} 
-            className="max-w-4xl mx-auto pb-12"
+            className="max-w-4xl mx-auto pb-28 sm:pb-36"
         >
             {/* Header & Date Strip */}
             <div className="text-center mb-6">

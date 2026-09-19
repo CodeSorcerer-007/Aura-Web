@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 
-export const CommandPalette = ({ isOpen, onClose, commands }) => {
+export const CommandPalette = ({ isOpen, onClose, commands = [], tasks = [], onTaskSelect }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef(null);
@@ -22,10 +22,48 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
         }
     }, [isOpen]);
 
+    const term = searchTerm.trim().toLowerCase();
+
     const filteredCommands = useMemo(() => {
-        if (!searchTerm) return commands;
-        return commands.filter(cmd => cmd.label.toLowerCase().includes(searchTerm.toLowerCase()));
-    }, [searchTerm, commands]);
+        if (!term) return commands;
+        return commands.filter(cmd => cmd.label.toLowerCase().includes(term));
+    }, [term, commands]);
+
+    const filteredTasks = useMemo(() => {
+        if (!term) return [];
+        return tasks.filter(t => 
+            !t.isArchived && (
+                t.text.toLowerCase().includes(term) ||
+                (t.category && t.category.toLowerCase().includes(term)) ||
+                (t.tags && t.tags.some(tag => tag.toLowerCase().includes(term))) ||
+                (t.notes && t.notes.toLowerCase().includes(term))
+            )
+        ).slice(0, 6);
+    }, [term, tasks]);
+
+    const combinedItems = useMemo(() => {
+        const items = [];
+        filteredCommands.forEach(cmd => {
+            items.push({
+                id: `cmd_${cmd.label}`,
+                type: 'command',
+                label: cmd.label,
+                shortcut: cmd.shortcut,
+                action: () => { cmd.action(); onClose(); }
+            });
+        });
+        filteredTasks.forEach(task => {
+            items.push({
+                id: `task_${task.id}`,
+                type: 'task',
+                label: task.text,
+                category: task.category,
+                completed: task.completed,
+                action: () => { onTaskSelect?.(task.id); onClose(); }
+            });
+        });
+        return items;
+    }, [filteredCommands, filteredTasks, onTaskSelect, onClose]);
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
@@ -35,16 +73,15 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
             e.preventDefault();
-            setSelectedIndex(i => (i + 1) % filteredCommands.length);
+            setSelectedIndex(i => (i + 1) % Math.max(1, combinedItems.length));
         } else if (e.key === 'ArrowUp') {
             e.preventDefault();
-            setSelectedIndex(i => (i - 1 + filteredCommands.length) % filteredCommands.length);
+            setSelectedIndex(i => (i - 1 + Math.max(1, combinedItems.length)) % Math.max(1, combinedItems.length));
         } else if (e.key === 'Enter') {
             e.preventDefault();
-            const command = filteredCommands[selectedIndex];
-            if (command) {
-                command.action();
-                onClose();
+            const item = combinedItems[selectedIndex];
+            if (item) {
+                item.action();
             }
         }
     };
@@ -59,35 +96,67 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
             onClick={onClose}
         >
             <motion.div 
-                initial={{ y: -50, scale: 0.95 }} 
+                initial={{ y: -40, scale: 0.96 }} 
                 animate={{ y: 0, scale: 1 }} 
-                exit={{ y: -50, scale: 0.95 }} 
-                className="w-full max-w-xl mx-auto bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-xl shadow-2xl overflow-hidden" 
+                exit={{ y: -40, scale: 0.96 }} 
+                className="w-full max-w-xl mx-auto bg-[var(--color-bg-secondary)] border border-white/10 rounded-2xl shadow-2xl overflow-hidden" 
                 onClick={(e) => e.stopPropagation()}
             >
-                <input 
-                    ref={inputRef}
-                    type="text" 
-                    value={searchTerm}
-                    onChange={handleSearchChange}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type a command or search..."
-                    className="w-full bg-transparent text-lg p-4 focus:outline-none"
-                />
-                <div className="border-t border-[var(--color-border)] max-h-[50vh] overflow-y-auto">
-                    {filteredCommands.length > 0 ? (
-                        filteredCommands.map((cmd, index) => (
-                            <div 
-                                key={cmd.label} 
-                                onClick={() => { cmd.action(); onClose(); }}
-                                className={`p-3 text-sm cursor-pointer flex justify-between items-center ${selectedIndex === index ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)]' : 'hover:bg-[var(--color-bg-secondary-hover)]'}`}
-                            >
-                                <span>{cmd.label}</span>
-                                <span className="text-xs text-[var(--color-text-secondary)]">{cmd.shortcut}</span>
-                            </div>
-                        ))
+                <div className="flex items-center px-4 py-3 border-b border-white/10 gap-2">
+                    <span className="text-white/40 text-sm">🔍</span>
+                    <input 
+                        ref={inputRef}
+                        type="text" 
+                        value={searchTerm}
+                        onChange={handleSearchChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder="Type a command, task title, @tag, or #category..."
+                        className="w-full bg-transparent text-sm sm:text-base text-[var(--color-text-primary)] focus:outline-none placeholder:text-white/30"
+                    />
+                    <span className="text-[10px] text-white/30 font-mono border border-white/10 px-1.5 py-0.5 rounded">ESC</span>
+                </div>
+
+                <div className="max-h-[55vh] overflow-y-auto p-1.5 space-y-1">
+                    {combinedItems.length > 0 ? (
+                        combinedItems.map((item, index) => {
+                            const isSelected = selectedIndex === index;
+                            return (
+                                <div 
+                                    key={item.id} 
+                                    onClick={item.action}
+                                    className={`p-2.5 rounded-xl text-xs sm:text-sm cursor-pointer flex justify-between items-center transition-all ${
+                                        isSelected 
+                                            ? 'bg-[var(--color-accent)]/20 text-[var(--color-accent)] font-medium border border-[var(--color-accent)]/30' 
+                                            : 'hover:bg-white/[0.04] text-[var(--color-text-primary)]/80'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2 truncate pr-2">
+                                        {item.type === 'command' ? (
+                                            <span className="text-white/40 text-xs">⚡</span>
+                                        ) : (
+                                            <span className={`text-xs ${item.completed ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                                {item.completed ? '✓' : '○'}
+                                            </span>
+                                        )}
+                                        <span className="truncate">{item.label}</span>
+                                        {item.category && (
+                                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/[0.06] text-white/50">
+                                                {item.category}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {item.shortcut && (
+                                        <span className="text-[10px] font-mono text-white/40 border border-white/10 px-1.5 py-0.5 rounded">
+                                            {item.shortcut}
+                                        </span>
+                                    )}
+                                </div>
+                            );
+                        })
                     ) : (
-                        <p className="p-3 text-sm text-[var(--color-text-secondary)]">No commands found.</p>
+                        <p className="p-4 text-xs text-center text-[var(--color-text-secondary)]">
+                            No matching commands or tasks found.
+                        </p>
                     )}
                 </div>
             </motion.div>

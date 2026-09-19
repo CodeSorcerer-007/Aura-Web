@@ -195,8 +195,8 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         return () => clearTimeout(timer);
     }, [allDataLoaded, buildFullSnapshotPayload]);
 
-    const restoreSnapshotById = useCallback((snapshotId) => {
-        const data = getSnapshotDataById(snapshotId);
+    const restoreSnapshotById = useCallback(async (snapshotId) => {
+        const data = await getSnapshotDataById(snapshotId);
         if (!data) return false;
         if (data.tasks) setTasks(data.tasks);
         if (data.templates) setTemplates(data.templates);

@@ -144,7 +144,7 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
             animate={{ opacity: 1, y: 0 }} 
             exit={{ opacity: 0, y: -20 }} 
             transition={{ duration: 0.5 }} 
-            className="max-w-4xl mx-auto space-y-8"
+            className="max-w-4xl mx-auto space-y-8 pb-28 sm:pb-36"
         >
             <div className="text-center">
                 <h2 className="text-3xl font-bold text-[var(--color-text-primary)] mb-2">Your Review</h2>

@@ -178,23 +178,6 @@ export const AmbientSoundModal = ({ isOpen, onClose }) => {
                                 );
                             })}
                         </div>
-                        {atmosphereSound !== 'off' && (
-                            <div className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02] border border-white/5">
-                                <span className="text-[11px] text-white/50 w-24">Atmosphere Mix</span>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="1"
-                                    step="0.02"
-                                    value={atmosphereVolume}
-                                    onChange={(e) => setAtmosphereVolume(parseFloat(e.target.value))}
-                                    className="flex-1 accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                                />
-                                <span className="font-mono text-[11px] text-cyan-300 w-8 text-right">
-                                    {Math.round(atmosphereVolume * 100)}%
-                                </span>
-                            </div>
-                        )}
                     </div>
                 )}
 
@@ -222,45 +205,88 @@ export const AmbientSoundModal = ({ isOpen, onClose }) => {
                                 );
                             })}
                         </div>
-                        {frequencySound !== 'off' && (
-                            <div className="flex items-center gap-3 p-2 rounded-xl bg-white/[0.02] border border-white/5">
-                                <span className="text-[11px] text-white/50 w-24">Frequency Mix</span>
+                    </div>
+                )}
+
+                {/* Persistent Dual-Track Live Mixer Rack */}
+                {isPlaying && (
+                    <div className="space-y-3 pt-3 border-t border-white/10 mb-4">
+                        <div className="flex items-center justify-between text-xs text-white/70">
+                            <span className="flex items-center gap-1.5 font-semibold text-cyan-300">
+                                <Sliders className="w-3.5 h-3.5" />
+                                Dual-Track Sound Mixer
+                            </span>
+                            <span className="text-[10px] text-white/40 font-mono">Live Volume Balance</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                            {/* Track 1 Live Slider */}
+                            <div className="p-2.5 rounded-2xl bg-cyan-500/10 border border-cyan-400/20">
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[11px] font-medium text-cyan-200 flex items-center gap-1.5 truncate">
+                                        <CloudRain className="w-3 h-3 text-cyan-400 flex-shrink-0" />
+                                        <span className="truncate">
+                                            {ATMOSPHERE_OPTIONS.find(o => o.id === atmosphereSound)?.label || 'Track 1'}
+                                        </span>
+                                    </span>
+                                    <span className="font-mono text-[10px] text-cyan-300 font-bold ml-2">
+                                        {atmosphereSound === 'off' ? 'Off' : `${Math.round(atmosphereVolume * 100)}%`}
+                                    </span>
+                                </div>
                                 <input
                                     type="range"
                                     min="0"
                                     max="1"
                                     step="0.02"
+                                    disabled={atmosphereSound === 'off'}
+                                    value={atmosphereVolume}
+                                    onChange={(e) => setAtmosphereVolume(parseFloat(e.target.value))}
+                                    className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none disabled:opacity-25"
+                                />
+                            </div>
+
+                            {/* Track 2 Live Slider */}
+                            <div className="p-2.5 rounded-2xl bg-purple-500/10 border border-purple-400/20">
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <span className="text-[11px] font-medium text-purple-200 flex items-center gap-1.5 truncate">
+                                        <Radio className="w-3 h-3 text-purple-400 flex-shrink-0" />
+                                        <span className="truncate">
+                                            {FREQUENCY_OPTIONS.find(o => o.id === frequencySound)?.label || 'Track 2'}
+                                        </span>
+                                    </span>
+                                    <span className="font-mono text-[10px] text-purple-300 font-bold ml-2">
+                                        {frequencySound === 'off' ? 'Off' : `${Math.round(frequencyVolume * 100)}%`}
+                                    </span>
+                                </div>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="1"
+                                    step="0.02"
+                                    disabled={frequencySound === 'off'}
                                     value={frequencyVolume}
                                     onChange={(e) => setFrequencyVolume(parseFloat(e.target.value))}
-                                    className="flex-1 accent-purple-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                                    className="w-full accent-purple-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none disabled:opacity-25"
                                 />
-                                <span className="font-mono text-[11px] text-purple-300 w-8 text-right">
-                                    {Math.round(frequencyVolume * 100)}%
-                                </span>
                             </div>
-                        )}
-                    </div>
-                )}
-
-                {/* Master Volume & Sleep Timer */}
-                {isPlaying && (
-                    <div className="space-y-3 pt-3 border-t border-white/10 mb-4">
-                        <div className="flex items-center justify-between text-xs text-white/70">
-                            <span className="flex items-center gap-1.5 font-medium">
-                                <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-                                Master Volume
-                            </span>
-                            <span className="font-mono text-[11px] text-white/50">{Math.round(masterVolume * 100)}%</span>
                         </div>
-                        <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.02"
-                            value={masterVolume}
-                            onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
-                            className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
-                        />
+
+                        {/* Master Volume Output */}
+                        <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 space-y-1.5">
+                            <div className="flex items-center justify-between text-xs text-white/70">
+                                <span className="text-[11px] font-medium text-white/60">Master Volume</span>
+                                <span className="font-mono text-[11px] text-white/90 font-bold">{Math.round(masterVolume * 100)}%</span>
+                            </div>
+                            <input
+                                type="range"
+                                min="0"
+                                max="1"
+                                step="0.02"
+                                value={masterVolume}
+                                onChange={(e) => setMasterVolume(parseFloat(e.target.value))}
+                                className="w-full accent-cyan-400 cursor-pointer h-1.5 bg-white/10 rounded-lg appearance-none"
+                            />
+                        </div>
 
                         {/* Sleep Timer */}
                         <div className="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 mt-2">

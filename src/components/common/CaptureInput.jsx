@@ -107,21 +107,21 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
             initial={{ y: 100 }} 
             animate={{ y: 0 }} 
             transition={{ type: 'spring', stiffness: 120, damping: 20 }} 
-            className="fixed bottom-0 left-0 right-0 pt-3 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/95 to-transparent z-20 backdrop-blur-[4px]"
+            className="fixed bottom-0 left-0 right-0 pt-2 sm:pt-3 px-3 sm:px-4 pb-[calc(0.6rem+env(safe-area-inset-bottom))] sm:pb-[calc(1rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-[var(--color-bg)] via-[var(--color-bg)]/95 to-transparent z-20 backdrop-blur-[4px]"
             role="region"
             aria-label="Quick Task Capture"
         >
-            <div className="max-w-2xl mx-auto space-y-2">
+            <div className="max-w-2xl mx-auto space-y-1.5 sm:space-y-2">
                 {/* Micro Energy Selection Pills */}
-                <div className="flex items-center justify-center gap-1.5 px-2">
-                    <span className="text-[10px] uppercase font-bold text-[var(--color-text-secondary)]/70 tracking-widest mr-1">
+                <div className="flex items-center justify-center gap-1 sm:gap-1.5 px-1 sm:px-2">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-bold text-[var(--color-text-secondary)]/70 tracking-widest mr-0.5 sm:mr-1">
                         Bio-Energy:
                     </span>
                     <button
                         type="button"
                         onClick={() => setSelectedEnergy(selectedEnergy === 'spark' ? null : 'spark')}
                         aria-pressed={selectedEnergy === 'spark'}
-                        className={`text-[11px] px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
+                        className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border transition-all flex items-center gap-1 sm:gap-1.5 ${
                             selectedEnergy === 'spark'
                                 ? 'bg-amber-400 text-black border-amber-300 font-bold shadow-[0_0_12px_rgba(251,191,36,0.4)] scale-105'
                                 : 'bg-[var(--color-bg-secondary)]/60 text-[var(--color-text-secondary)] border-white/5 hover:border-amber-400/40 hover:text-amber-300'
@@ -135,7 +135,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                         type="button"
                         onClick={() => setSelectedEnergy(selectedEnergy === 'flow' ? null : 'flow')}
                         aria-pressed={selectedEnergy === 'flow'}
-                        className={`text-[11px] px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
+                        className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border transition-all flex items-center gap-1 sm:gap-1.5 ${
                             selectedEnergy === 'flow'
                                 ? 'bg-sky-400 text-black border-sky-300 font-bold shadow-[0_0_12px_rgba(56,189,248,0.4)] scale-105'
                                 : 'bg-[var(--color-bg-secondary)]/60 text-[var(--color-text-secondary)] border-white/5 hover:border-sky-400/40 hover:text-sky-300'
@@ -149,7 +149,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                         type="button"
                         onClick={() => setSelectedEnergy(selectedEnergy === 'rest' ? null : 'rest')}
                         aria-pressed={selectedEnergy === 'rest'}
-                        className={`text-[11px] px-3 py-1 rounded-full border transition-all flex items-center gap-1.5 ${
+                        className={`text-[10px] sm:text-[11px] px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full border transition-all flex items-center gap-1 sm:gap-1.5 ${
                             selectedEnergy === 'rest'
                                 ? 'bg-emerald-400 text-black border-emerald-300 font-bold shadow-[0_0_12px_rgba(52,211,153,0.4)] scale-105'
                                 : 'bg-[var(--color-bg-secondary)]/60 text-[var(--color-text-secondary)] border-white/5 hover:border-emerald-400/40 hover:text-emerald-300'
@@ -161,7 +161,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="flex items-center gap-2">
+                <form onSubmit={handleSubmit} className="flex items-center gap-1.5 sm:gap-2">
                     <div className="relative flex-grow">
                         {/* Tag Autocomplete Popover */}
                         <AnimatePresence>
@@ -170,13 +170,8 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                                     initial={{ opacity: 0, y: 10, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
                                     exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                    transition={{ duration: 0.15 }}
-                                    className="absolute bottom-full mb-2 left-0 right-0 sm:right-auto sm:min-w-[240px] bg-[var(--color-bg-secondary)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 overflow-hidden"
+                                    className="absolute bottom-full mb-2 left-0 right-0 p-2 aura-glass rounded-2xl border border-white/10 shadow-2xl z-30"
                                 >
-                                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]/70 flex items-center justify-between border-b border-white/5 mb-1">
-                                        <span>🏷️ Matching Tags</span>
-                                        <span className="text-[9px] font-normal">↑↓ navigate · ↵ select</span>
-                                    </div>
                                     <div className="space-y-0.5">
                                         {matchingTags.map((tag, idx) => (
                                             <button
@@ -214,7 +209,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                             onKeyDown={handleKeyDown}
                             placeholder="Capture a thought... (@tag, #Category, !urgent, ~spark) (N)" 
                             aria-label="Capture a new task or thought"
-                            className="w-full bg-[var(--color-bg-secondary)]/80 backdrop-blur-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 text-sm sm:text-base px-5 py-3.5 rounded-2xl border border-white/10 focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/30 shadow-xl transition-all"
+                            className="w-full bg-[var(--color-bg-secondary)]/80 backdrop-blur-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 text-xs sm:text-base px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl border border-white/10 focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/30 shadow-xl transition-all"
                         />
                     </div>
                     {onOpenBrainSweep && (
@@ -223,17 +218,17 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
                             onClick={onOpenBrainSweep}
                             title="Zen Brain Sweep - Multi-line thought dump"
                             aria-label="Open Zen Brain Sweep multi-line dump"
-                            className="bg-[var(--color-bg-secondary)]/80 hover:bg-[var(--color-bg-secondary-hover)] text-[var(--color-text-secondary)] hover:text-amber-300 p-3.5 rounded-2xl transition-all flex-shrink-0 border border-white/10 shadow-lg hover:border-amber-400/30 active:scale-95"
+                            className="bg-[var(--color-bg-secondary)]/80 hover:bg-[var(--color-bg-secondary-hover)] text-[var(--color-text-secondary)] hover:text-amber-300 p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl transition-all flex-shrink-0 border border-white/10 shadow-lg hover:border-amber-400/30 active:scale-95"
                         >
-                            <span className="text-base">💨</span>
+                            <span className="text-sm sm:text-base">💨</span>
                         </button>
                     )}
                     <button 
                         type="submit" 
                         aria-label="Add task"
-                        className="bg-[var(--color-accent)] text-black p-3.5 sm:p-4 rounded-2xl transition-all flex-shrink-0 shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:shadow-[0_0_24px_rgba(52,211,153,0.55)] active:scale-95 font-semibold hover:brightness-110"
+                        className="bg-[var(--color-accent)] text-black p-2.5 sm:p-3.5 rounded-xl sm:rounded-2xl transition-all flex-shrink-0 shadow-[0_0_18px_rgba(52,211,153,0.35)] hover:shadow-[0_0_24px_rgba(52,211,153,0.55)] active:scale-95 font-semibold hover:brightness-110"
                     >
-                        <PlusIcon className="w-5 h-5 stroke-[2.5]" />
+                        <PlusIcon className="w-4 h-4 sm:w-5 sm:h-5 stroke-[2.5]" />
                     </button>
                 </form>
             </div>
