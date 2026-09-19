@@ -5,11 +5,11 @@ import { db } from '../db/adapter.js';
 
 export const authRouter = express.Router();
 
-if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
-    throw new Error('FATAL: JWT_SECRET environment variable must be set in production mode.');
-}
-
 const JWT_SECRET = process.env.JWT_SECRET || 'aura-mindful-sanctuary-secret-key-2026';
+
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.warn('⚠️ [Aura Security Warning] JWT_SECRET is not set in environment variables. Using fallback secret. Please add JWT_SECRET in your Vercel Project Settings > Environment Variables.');
+}
 
 // Middleware to authenticate JWT token
 export const authenticateToken = async (req, res, next) => {

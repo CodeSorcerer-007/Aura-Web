@@ -43,14 +43,20 @@ const healthHandler = (req, res) => {
 };
 app.get('/api/health', healthHandler);
 app.get('/api/v1/health', healthHandler);
+app.get('/health', healthHandler);
+app.get('/v1/health', healthHandler);
 
 // API v1 Routes
 app.use('/api/v1/auth', authLimiter, authRouter);
 app.use('/api/v1/sync', syncLimiter, syncRouter);
+app.use('/v1/auth', authLimiter, authRouter);
+app.use('/v1/sync', syncLimiter, syncRouter);
 
-// Backward-compatibility routes
+// Backward-compatibility and direct serverless routes
 app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/sync', syncLimiter, syncRouter);
+app.use('/auth', authLimiter, authRouter);
+app.use('/sync', syncLimiter, syncRouter);
 
 // Serve static frontend files in production if dist/ exists (standalone server)
 const distPath = path.join(__dirname, '..', 'dist');
