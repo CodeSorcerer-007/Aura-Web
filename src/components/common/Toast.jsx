@@ -32,6 +32,13 @@ export const AchievementToast = ({ achievement, onClose }) => (
 );
 
 export const GenericToast = ({ message, onClose }) => {
+    React.useEffect(() => {
+        const timer = setTimeout(() => {
+            onClose();
+        }, 5000);
+        return () => clearTimeout(timer);
+    }, [message, onClose]);
+
     const typeStyles = {
         success: 'bg-emerald-950/85 border-emerald-500/40 text-emerald-100 shadow-[0_12px_40px_rgba(16,185,129,0.3)]',
         info: 'bg-sky-950/85 border-sky-500/40 text-sky-100 shadow-[0_12px_40px_rgba(14,165,233,0.3)]',
@@ -48,16 +55,17 @@ export const GenericToast = ({ message, onClose }) => {
             exit={{ opacity: 0, y: 20, scale: 0.9, transition: { duration: 0.2 } }}
             role="status"
             aria-live="polite"
-            className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4"
+            className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 w-full max-w-sm px-4 pointer-events-auto"
         >
-            <div className={`p-4 rounded-2xl border backdrop-blur-2xl flex items-center gap-3 ${style}`}>
+            <div className={`relative overflow-hidden p-4 rounded-2xl border backdrop-blur-2xl flex items-center gap-3 ${style}`}>
                 <p className="font-medium text-sm flex-1 leading-snug">{message.text}</p>
                 {message.onUndo && (
                     <button
                         onClick={() => { message.onUndo(); onClose(); }}
-                        className="px-3 py-1 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0 active:scale-95"
+                        className="px-3 py-1 rounded-xl bg-white/20 hover:bg-white/30 text-white text-xs font-bold transition-all shadow-sm flex-shrink-0 active:scale-95 flex items-center gap-1"
                     >
-                        Undo
+                        <span>↩</span>
+                        <span>Undo</span>
                     </button>
                 )}
                 <button 
@@ -67,6 +75,13 @@ export const GenericToast = ({ message, onClose }) => {
                 >
                     <XIcon className="w-4 h-4"/>
                 </button>
+                {/* 5-second countdown progress bar */}
+                <motion.div
+                    initial={{ width: '100%' }}
+                    animate={{ width: '0%' }}
+                    transition={{ duration: 5, ease: 'linear' }}
+                    className="absolute bottom-0 left-0 h-0.5 bg-white/40"
+                />
             </div>
         </motion.div>
     );

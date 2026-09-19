@@ -3,7 +3,28 @@ import React, { createContext, useContext, useState } from 'react';
 const UIContext = createContext(null);
 
 export const UIProvider = ({ children }) => {
-    const [currentView, setCurrentView] = useState('flow');
+    const [currentView, setCurrentViewState] = useState(() => {
+        try {
+            const saved = localStorage.getItem('aura-last-view');
+            return saved && ['flow', 'constellations', 'grove', 'journal', 'review'].includes(saved)
+                ? saved
+                : 'flow';
+        } catch {
+            return 'flow';
+        }
+    });
+
+    const setCurrentView = (viewOrUpdater) => {
+        setCurrentViewState(prev => {
+            const nextView = typeof viewOrUpdater === 'function' ? viewOrUpdater(prev) : viewOrUpdater;
+            try {
+                localStorage.setItem('aura-last-view', nextView);
+            } catch (e) {
+                console.error('Failed to persist view', e);
+            }
+            return nextView;
+        });
+    };
     const [focusTaskId, setFocusTaskId] = useState(null);
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);

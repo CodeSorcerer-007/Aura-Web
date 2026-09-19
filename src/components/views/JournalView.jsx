@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTodayDateString, formatDate } from '../../utils/dateUtils';
+import { getTodayDateString } from '../../utils/dateUtils';
 import { SparklesIcon } from '../common/Icons';
 
 export const JournalView = ({ journalEntries, setJournalEntries, completedTasks }) => {

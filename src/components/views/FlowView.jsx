@@ -30,9 +30,69 @@ export const FlowView = ({
     setMonolithTaskId,
     tunnelVision,
     setTunnelVision,
-    moveTaskToSection
+    moveTaskToSection,
+    onReorderSectionTasks,
+    stats
 }) => {
     const nonArchivedTasks = tasks.filter(t => !t.isArchived);
+
+    // Weekly Mini-Summary State & Calculation
+    const [isWeeklySummaryOpen, setIsWeeklySummaryOpen] = React.useState(() => {
+        try {
+            return localStorage.getItem('aura-weekly-summary-collapsed') !== 'true';
+        } catch {
+            return true;
+        }
+    });
+
+    const toggleWeeklySummary = () => {
+        setIsWeeklySummaryOpen(prev => {
+            const next = !prev;
+            try {
+                localStorage.setItem('aura-weekly-summary-collapsed', (!next).toString());
+            } catch {}
+            return next;
+        });
+    };
+
+    const weeklyStats = useMemo(() => {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        const day = startOfWeek.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const tasksCompletedThisWeek = (allTasks || tasks).filter(t => {
+            if (!t.completed || !t.completionDate) return false;
+            const cDate = new Date(t.completionDate);
+            return cDate >= startOfWeek;
+        }).length;
+
+        let focusThisWeek = 0;
+        try {
+            const history = JSON.parse(localStorage.getItem('aura-focus-history') || '[]');
+            history.forEach(item => {
+                if (new Date(item.timestamp) >= startOfWeek) focusThisWeek++;
+            });
+        } catch {}
+
+        if (focusThisWeek === 0) {
+            (allTasks || tasks).forEach(t => {
+                if (t.focusSessions > 0 && t.completionDate) {
+                    if (new Date(t.completionDate) >= startOfWeek) focusThisWeek += t.focusSessions;
+                }
+            });
+        }
+
+        const streak = stats?.streak || 0;
+
+        return {
+            completed: tasksCompletedThisWeek,
+            streak,
+            focusSessions: focusThisWeek
+        };
+    }, [allTasks, tasks, stats]);
 
     // Monolith Task
     const monolithTask = monolithTaskId ? nonArchivedTasks.find(t => t.id === monolithTaskId) : null;
@@ -63,6 +123,64 @@ export const FlowView = ({
             className="max-w-2xl mx-auto"
         >
             <DayDatePanel />
+
+            {/* Weekly Mini-Summary Micro-Card */}
+            <div className="mb-4">
+                <div 
+                    onClick={toggleWeeklySummary}
+                    className="cursor-pointer group flex items-center justify-between p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-[var(--color-bg-secondary)]/50 hover:bg-[var(--color-bg-secondary)]/80 border border-white/5 hover:border-amber-400/20 transition-all text-xs select-none"
+                    role="button"
+                    tabIndex={0}
+                    aria-expanded={isWeeklySummaryOpen}
+                    aria-label="Toggle weekly summary"
+                >
+                    <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
+                        <span className="font-bold text-[var(--color-accent)] flex items-center gap-1.5 uppercase tracking-wider text-[10px]">
+                            <span>📊</span> This Week
+                        </span>
+                        <div className="flex items-center gap-3 sm:gap-4 text-[var(--color-text-secondary)]">
+                            <span className="flex items-center gap-1 font-medium">
+                                <span className="text-emerald-400 font-bold">{weeklyStats.completed}</span> done
+                            </span>
+                            <span className="flex items-center gap-1 font-medium">
+                                <span className="text-amber-400 font-bold">{weeklyStats.streak}d</span> streak 🔥
+                            </span>
+                            <span className="flex items-center gap-1 font-medium">
+                                <span className="text-sky-400 font-bold">{weeklyStats.focusSessions}</span> focus ⏱️
+                            </span>
+                        </div>
+                    </div>
+                    <span className="text-[var(--color-text-secondary)] group-hover:text-[var(--color-text-primary)] transition-transform duration-200">
+                        {isWeeklySummaryOpen ? '▴' : '▾'}
+                    </span>
+                </div>
+
+                {isWeeklySummaryOpen && (
+                    <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="overflow-hidden"
+                    >
+                        <div className="mt-1.5 p-3 rounded-2xl bg-[var(--color-bg-secondary)]/30 border border-white/5 grid grid-cols-3 gap-2 text-center text-xs">
+                            <div className="p-2 rounded-xl bg-[var(--color-bg)]/40">
+                                <span className="text-[10px] text-[var(--color-text-secondary)] block">Tasks Finished</span>
+                                <span className="text-base font-extrabold text-emerald-400">{weeklyStats.completed}</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-[var(--color-bg)]/40">
+                                <span className="text-[10px] text-[var(--color-text-secondary)] block">Daily Momentum</span>
+                                <span className="text-base font-extrabold text-amber-400">{weeklyStats.streak} Days</span>
+                            </div>
+                            <div className="p-2 rounded-xl bg-[var(--color-bg)]/40">
+                                <span className="text-[10px] text-[var(--color-text-secondary)] block">Deep Work Flow</span>
+                                <span className="text-base font-extrabold text-sky-400">{weeklyStats.focusSessions} Sessions</span>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </div>
+
             <FilterBar 
                 activeFilter={activeFilter} 
                 setActiveFilter={setActiveFilter} 
@@ -198,6 +316,7 @@ export const FlowView = ({
                         title="Pinned" 
                         icon={<PinIcon />} 
                         tasks={pinnedTasks} 
+                        onReorderTasks={onReorderSectionTasks}
                         {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                     />
                 )}
@@ -208,6 +327,7 @@ export const FlowView = ({
                     energyTip="⚡ Deep Spark Focus"
                     tasks={morningTasks} 
                     onMoveTaskToSection={moveTaskToSection}
+                    onReorderTasks={onReorderSectionTasks}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 <TimeSection 
@@ -217,6 +337,7 @@ export const FlowView = ({
                     energyTip="🌊 Steady Rhythm Flow"
                     tasks={afternoonTasks} 
                     onMoveTaskToSection={moveTaskToSection}
+                    onReorderTasks={onReorderSectionTasks}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 <TimeSection 
@@ -226,6 +347,7 @@ export const FlowView = ({
                     energyTip="🍵 Gentle Wind-down"
                     tasks={eveningTasks} 
                     onMoveTaskToSection={moveTaskToSection}
+                    onReorderTasks={onReorderSectionTasks}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 {completedTasks.length > 0 && (

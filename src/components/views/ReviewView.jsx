@@ -41,6 +41,103 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
 
     const totalCompleted = completedTasks.length;
 
+    // Focus & Pomodoro Analytics
+    const focusStats = useMemo(() => {
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('aura-focus-history') || '[]');
+        } catch {
+            history = [];
+        }
+
+        const taskSessionsCount = tasks.reduce((sum, t) => sum + (t.focusSessions || 0), 0);
+        const totalSessions = Math.max(taskSessionsCount, history.length);
+
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        const day = startOfWeek.getDay();
+        const diffToMonday = (day === 0 ? -6 : 1) - day;
+        startOfWeek.setDate(startOfWeek.getDate() + diffToMonday);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+        let sessionsThisWeek = 0;
+        let sessionsThisMonth = 0;
+
+        if (history.length > 0) {
+            history.forEach(item => {
+                const d = new Date(item.timestamp);
+                if (d >= startOfWeek) sessionsThisWeek++;
+                if (d >= startOfMonth) sessionsThisMonth++;
+            });
+        }
+
+        tasks.forEach(t => {
+            if (t.focusSessions > 0 && t.completionDate) {
+                const compDate = new Date(t.completionDate);
+                if (compDate >= startOfWeek && history.length === 0) {
+                    sessionsThisWeek += t.focusSessions;
+                }
+                if (compDate >= startOfMonth && history.length === 0) {
+                    sessionsThisMonth += t.focusSessions;
+                }
+            }
+        });
+
+        // Top focused category
+        const categoryCounts = {};
+        tasks.forEach(t => {
+            if (t.focusSessions > 0) {
+                categoryCounts[t.category || 'General'] = (categoryCounts[t.category || 'General'] || 0) + t.focusSessions;
+            }
+        });
+        history.forEach(item => {
+            if (item.category) {
+                categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
+            }
+        });
+        const sortedCats = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
+        const topCategory = sortedCats.length > 0 ? sortedCats[0][0] : 'General';
+        const topCategoryCount = sortedCats.length > 0 ? sortedCats[0][1] : 0;
+
+        // Estimated deep work minutes
+        const totalMinutes = totalSessions * 25;
+        const hours = Math.floor(totalMinutes / 60);
+        const mins = totalMinutes % 60;
+        const deepWorkFormatted = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
+
+        // Focus streak calculation
+        const focusDates = new Set();
+        history.forEach(h => {
+            if (h.timestamp) focusDates.add(h.timestamp.split('T')[0]);
+        });
+        tasks.forEach(t => {
+            if (t.focusSessions > 0 && t.completionDate) focusDates.add(t.completionDate);
+        });
+
+        let streak = 0;
+        let tempDate = new Date();
+        const hasToday = focusDates.has(tempDate.toISOString().split('T')[0]);
+        if (!hasToday) {
+            tempDate.setDate(tempDate.getDate() - 1);
+        }
+        while (focusDates.has(tempDate.toISOString().split('T')[0])) {
+            streak++;
+            tempDate.setDate(tempDate.getDate() - 1);
+        }
+
+        return {
+            totalSessions,
+            sessionsThisWeek,
+            sessionsThisMonth,
+            deepWorkFormatted,
+            topCategory,
+            topCategoryCount,
+            focusStreak: streak
+        };
+    }, [tasks]);
+
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }} 
@@ -56,6 +153,65 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
 
             {/* GitHub-style Full Year Productivity Heatmap */}
             <ProductivityHeatmap completedTasks={completedTasks} streak={stats?.streak || 0} />
+
+            {/* Focus Mastery & Pomodoro Stats */}
+            <div className="p-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl shadow-lg relative overflow-hidden">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2.5">
+                        <span className="p-2 rounded-xl bg-amber-400/15 text-amber-300 border border-amber-400/30 text-base">
+                            ⏱️
+                        </span>
+                        <div>
+                            <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+                                Focus Stats & Deep Work
+                                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-400/30">
+                                    Pomodoro
+                                </span>
+                            </h3>
+                            <p className="text-xs text-[var(--color-text-secondary)]">
+                                Deep work sessions and sacred focus intervals completed
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 flex flex-col justify-between">
+                        <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Total Sessions</span>
+                        <div className="mt-1">
+                            <span className="text-2xl font-black text-amber-300">{focusStats.totalSessions}</span>
+                            <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">
+                                {focusStats.sessionsThisWeek} wk · {focusStats.sessionsThisMonth} mo
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 flex flex-col justify-between">
+                        <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Estimated Deep Work</span>
+                        <div className="mt-1">
+                            <span className="text-2xl font-black text-sky-300">{focusStats.deepWorkFormatted}</span>
+                            <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">~25m avg per flow</p>
+                        </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 flex flex-col justify-between">
+                        <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Top Realm</span>
+                        <div className="mt-1">
+                            <span className="text-xl font-bold text-purple-300 truncate block">{focusStats.topCategory}</span>
+                            <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">{focusStats.topCategoryCount} sessions</p>
+                        </div>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 flex flex-col justify-between">
+                        <span className="text-[11px] font-medium text-[var(--color-text-secondary)]">Focus Streak</span>
+                        <div className="mt-1 flex items-baseline gap-1">
+                            <span className="text-2xl font-black text-emerald-300">{focusStats.focusStreak}</span>
+                            <span className="text-xs text-emerald-400 font-bold">days 🔥</span>
+                        </div>
+                        <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">Consecutive focus</p>
+                    </div>
+                </div>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="p-4 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-lg">

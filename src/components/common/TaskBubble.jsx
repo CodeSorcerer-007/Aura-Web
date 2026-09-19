@@ -26,10 +26,10 @@ export const TaskBubble = ({
     isDependencyMet,
     onOpenDetail,
     onTogglePin,
-    onArchive
+    onArchive,
+    dragControls
 }) => {
     const [isBursting, setIsBursting] = useState(false);
-    const [isDraggingThis, setIsDraggingThis] = useState(false);
 
     const color = allCategories[task.category] || defaultCategories['General'];
     const completedSubtasks = task.subtasks?.filter(st => st.completed).length || 0;
@@ -60,18 +60,6 @@ export const TaskBubble = ({
             setIsBursting(true);
         }
         onToggle(task.id);
-    };
-
-    const handleDragStart = (e) => {
-        setIsDraggingThis(true);
-        if (e.dataTransfer) {
-            e.dataTransfer.setData('text/plain', task.id);
-            e.dataTransfer.effectAllowed = 'move';
-        }
-    };
-
-    const handleDragEndNative = () => {
-        setIsDraggingThis(false);
     };
 
     // Handle touch/swipe gestures on task card
@@ -120,13 +108,11 @@ export const TaskBubble = ({
             </motion.div>
 
             <motion.article
-                layout
                 initial={{ opacity: 0, y: 15, scale: 0.97 }}
                 animate={{
                     opacity: 1,
                     y: 0,
-                    scale: 1,
-                    rotate: isDraggingThis ? 1.5 : 0
+                    scale: 1
                 }}
                 exit={{ opacity: 0, x: -80, transition: { duration: 0.25 } }}
                 transition={{ type: 'spring', stiffness: 220, damping: 24 }}
@@ -135,15 +121,12 @@ export const TaskBubble = ({
                 dragConstraints={{ left: 0, right: 0 }}
                 dragElastic={0.35}
                 onDragEnd={handleSwipeEnd}
-                draggable={!task.completed}
-                onDragStart={handleDragStart}
-                onDragEndCapture={handleDragEndNative}
                 aria-label={`Task: ${task.text}`}
-                className={`group relative p-4 sm:p-4.5 rounded-2xl border backdrop-blur-xl transition-all duration-300 z-10 select-none ${color.bg} ${color.border} ${
+                className={`group relative p-4 sm:p-4.5 rounded-2xl border backdrop-blur-xl transition-colors duration-200 z-10 select-none ${color.bg} ${color.border} ${
                     task.completed ? 'opacity-60 brightness-90 saturate-50' : 'hover:border-white/20'
                 } ${isLocked ? 'opacity-65' : ''} ${
                     task.isPinned ? 'border-amber-400/90 ring-1 ring-amber-400/30 shadow-md shadow-amber-500/10' : ''
-                } ${isDraggingThis ? 'opacity-70 scale-105 shadow-2xl z-30 cursor-grabbing' : 'cursor-grab hover:translate-y-[-1px]'}`}
+                }`}
             >
                 {/* Stardust Burst on Completion */}
                 <StardustBurst active={isBursting} onComplete={() => setIsBursting(false)} />
@@ -151,11 +134,16 @@ export const TaskBubble = ({
                 <div className="flex items-start gap-2.5">
                     {/* Drag Handle */}
                     <div
-                        className="flex items-center text-[var(--color-text-primary)]/20 group-hover:text-[var(--color-text-primary)]/60 cursor-grab active:cursor-grabbing mt-1 transition-colors flex-shrink-0"
-                        title="Drag across Morning, Afternoon, or Evening"
-                        aria-hidden="true"
+                        onPointerDown={(e) => {
+                            e.stopPropagation();
+                            dragControls?.start(e);
+                        }}
+                        style={{ touchAction: 'none' }}
+                        className="flex items-center text-[var(--color-text-primary)]/30 hover:text-[var(--color-text-primary)] cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
+                        title="Drag to reorder"
+                        aria-label="Reorder task"
                     >
-                        <GripVertical className="w-4 h-4" />
+                        <GripVertical className="w-4 h-4 pointer-events-none" />
                     </div>
 
                     {/* Completion Ring */}

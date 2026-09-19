@@ -1,6 +1,46 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { TaskBubble } from './TaskBubble';
+
+const ReorderTaskWrapper = ({
+    task,
+    allCategories,
+    toggleTask,
+    deleteTask,
+    onFocus,
+    onToggleSubtask,
+    isDependencyMet,
+    onOpenDetail,
+    onTogglePin,
+    onArchive
+}) => {
+    const dragControls = useDragControls();
+
+    return (
+        <Reorder.Item
+            value={task}
+            id={task.id}
+            dragListener={false}
+            dragControls={dragControls}
+            whileDrag={{ scale: 1.02, zIndex: 50, boxShadow: '0 15px 35px rgba(0,0,0,0.35)' }}
+            className="relative select-none"
+        >
+            <TaskBubble 
+                task={task} 
+                allCategories={allCategories}
+                onToggle={toggleTask}
+                onDelete={deleteTask}
+                onFocus={onFocus}
+                onToggleSubtask={onToggleSubtask}
+                isDependencyMet={isDependencyMet}
+                onOpenDetail={onOpenDetail}
+                onTogglePin={onTogglePin}
+                onArchive={onArchive}
+                dragControls={dragControls}
+            />
+        </Reorder.Item>
+    );
+};
 
 export const TimeSection = ({
     title,
@@ -18,7 +58,8 @@ export const TimeSection = ({
     onOpenDetail,
     onTogglePin,
     onArchive,
-    onMoveTaskToSection
+    onMoveTaskToSection,
+    onReorderTasks
 }) => {
     const [isDragOver, setIsDragOver] = useState(false);
 
@@ -88,27 +129,56 @@ export const TimeSection = ({
             )}
 
             <div className="space-y-3">
-                <AnimatePresence>
-                    {tasks.map((task) => {
-                        const dependency = task.dependsOn ? allTasks.find(t => t.id === task.dependsOn) : null;
-                        const isDependencyMet = !dependency || dependency.completed;
-                        return (
-                            <TaskBubble 
-                                key={task.id} 
-                                task={task}
-                                allCategories={allCategories}
-                                onToggle={toggleTask}
-                                onDelete={deleteTask}
-                                onFocus={onFocus}
-                                onToggleSubtask={onToggleSubtask}
-                                isDependencyMet={isDependencyMet}
-                                onOpenDetail={onOpenDetail}
-                                onTogglePin={onTogglePin}
-                                onArchive={onArchive}
-                            />
-                        );
-                    })}
-                </AnimatePresence>
+                {onReorderTasks && !isCompletedSection ? (
+                    <Reorder.Group
+                        axis="y"
+                        values={tasks}
+                        onReorder={onReorderTasks}
+                        className="space-y-3"
+                    >
+                        {tasks.map((task) => {
+                            const dependency = task.dependsOn ? allTasks.find(t => t.id === task.dependsOn) : null;
+                            const isDependencyMet = !dependency || dependency.completed;
+                            return (
+                                <ReorderTaskWrapper
+                                    key={task.id}
+                                    task={task}
+                                    allCategories={allCategories}
+                                    toggleTask={toggleTask}
+                                    deleteTask={deleteTask}
+                                    onFocus={onFocus}
+                                    onToggleSubtask={onToggleSubtask}
+                                    isDependencyMet={isDependencyMet}
+                                    onOpenDetail={onOpenDetail}
+                                    onTogglePin={onTogglePin}
+                                    onArchive={onArchive}
+                                />
+                            );
+                        })}
+                    </Reorder.Group>
+                ) : (
+                    <AnimatePresence>
+                        {tasks.map((task) => {
+                            const dependency = task.dependsOn ? allTasks.find(t => t.id === task.dependsOn) : null;
+                            const isDependencyMet = !dependency || dependency.completed;
+                            return (
+                                <TaskBubble 
+                                    key={task.id} 
+                                    task={task} 
+                                    allCategories={allCategories}
+                                    onToggle={toggleTask}
+                                    onDelete={deleteTask}
+                                    onFocus={onFocus}
+                                    onToggleSubtask={onToggleSubtask}
+                                    isDependencyMet={isDependencyMet}
+                                    onOpenDetail={onOpenDetail}
+                                    onTogglePin={onTogglePin}
+                                    onArchive={onArchive}
+                                />
+                            );
+                        })}
+                    </AnimatePresence>
+                )}
                 {tasks.length === 0 && isCompletedSection && (
                     <p className="text-[var(--color-text-secondary)]/80 pl-4 py-2 text-xs italic">
                         No tasks completed yet today. Let your flow state unfold naturally.

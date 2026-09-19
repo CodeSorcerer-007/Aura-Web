@@ -1,13 +1,95 @@
-import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import React, { useState, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PlusIcon } from './Icons';
 
-export const CaptureInput = ({ onAddTask, onOpenBrainSweep }) => {
+export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
     const [text, setText] = useState('');
     const [selectedEnergy, setSelectedEnergy] = useState(null); // null | 'spark' | 'flow' | 'rest'
+    const [tagQuery, setTagQuery] = useState(null);
+    const [tagStartIndex, setTagStartIndex] = useState(-1);
+    const [selectedTagIndex, setSelectedTagIndex] = useState(0);
+    const inputRef = useRef(null);
+
+    // Detect @tag typing pattern
+    const matchingTags = useMemo(() => {
+        if (tagQuery === null) return [];
+        const cleanQuery = tagQuery.toLowerCase();
+        return allTags
+            .filter(t => t && (cleanQuery === '' || t.toLowerCase().startsWith(cleanQuery)))
+            .slice(0, 6);
+    }, [tagQuery, allTags]);
+
+    const handleTextChange = (e) => {
+        const val = e.target.value;
+        setText(val);
+
+        const cursor = e.target.selectionStart;
+        const textUpToCursor = val.slice(0, cursor);
+        const match = textUpToCursor.match(/(?:^|\s)@([a-zA-Z0-9_-]*)$/);
+
+        if (match) {
+            const query = match[1];
+            const start = match.index + (match[0].startsWith('@') ? 0 : 1);
+            setTagQuery(query);
+            setTagStartIndex(start);
+            setSelectedTagIndex(0);
+        } else {
+            setTagQuery(null);
+            setTagStartIndex(-1);
+        }
+    };
+
+    const handleSelectTag = (tag) => {
+        if (tagStartIndex === -1) return;
+        const cursor = inputRef.current ? inputRef.current.selectionStart : text.length;
+        const before = text.slice(0, tagStartIndex);
+        const after = text.slice(cursor);
+        const nextText = `${before}@${tag} ${after}`;
+        setText(nextText);
+        setTagQuery(null);
+        setTagStartIndex(-1);
+
+        setTimeout(() => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+                const newPos = before.length + tag.length + 2;
+                inputRef.current.setSelectionRange(newPos, newPos);
+            }
+        }, 10);
+    };
+
+    const handleKeyDown = (e) => {
+        if (matchingTags.length > 0) {
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setSelectedTagIndex(i => (i + 1) % matchingTags.length);
+                return;
+            }
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setSelectedTagIndex(i => (i - 1 + matchingTags.length) % matchingTags.length);
+                return;
+            }
+            if (e.key === 'Enter' || e.key === 'Tab') {
+                if (matchingTags[selectedTagIndex]) {
+                    e.preventDefault();
+                    handleSelectTag(matchingTags[selectedTagIndex]);
+                    return;
+                }
+            }
+            if (e.key === 'Escape') {
+                setTagQuery(null);
+                return;
+            }
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+        if (matchingTags.length > 0 && tagQuery !== null) {
+            handleSelectTag(matchingTags[selectedTagIndex]);
+            return;
+        }
         if (text.trim()) {
             let finalTaskText = text.trim();
             if (selectedEnergy && !finalTaskText.includes(`~${selectedEnergy}`)) {
@@ -16,6 +98,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep }) => {
             onAddTask(finalTaskText);
             setText('');
             setSelectedEnergy(null);
+            setTagQuery(null);
         }
     };
 
@@ -80,10 +163,55 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep }) => {
 
                 <form onSubmit={handleSubmit} className="flex items-center gap-2">
                     <div className="relative flex-grow">
+                        {/* Tag Autocomplete Popover */}
+                        <AnimatePresence>
+                            {matchingTags.length > 0 && tagQuery !== null && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute bottom-full mb-2 left-0 right-0 sm:right-auto sm:min-w-[240px] bg-[var(--color-bg-secondary)]/95 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl p-1.5 z-50 overflow-hidden"
+                                >
+                                    <div className="px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-[var(--color-text-secondary)]/70 flex items-center justify-between border-b border-white/5 mb-1">
+                                        <span>🏷️ Matching Tags</span>
+                                        <span className="text-[9px] font-normal">↑↓ navigate · ↵ select</span>
+                                    </div>
+                                    <div className="space-y-0.5">
+                                        {matchingTags.map((tag, idx) => (
+                                            <button
+                                                key={tag}
+                                                type="button"
+                                                onMouseDown={(e) => {
+                                                    e.preventDefault();
+                                                    handleSelectTag(tag);
+                                                }}
+                                                className={`w-full text-left px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center justify-between transition-colors ${
+                                                    idx === selectedTagIndex
+                                                        ? 'bg-purple-500/25 text-purple-200 border border-purple-400/40 shadow-sm'
+                                                        : 'text-[var(--color-text-primary)] hover:bg-white/5 border border-transparent'
+                                                }`}
+                                            >
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="text-purple-400">@</span>
+                                                    <span>{tag}</span>
+                                                </span>
+                                                {idx === selectedTagIndex && (
+                                                    <span className="text-[10px] text-purple-300/80 font-mono">↵</span>
+                                                )}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         <input 
+                            ref={inputRef}
                             type="text" 
                             value={text} 
-                            onChange={(e) => setText(e.target.value)} 
+                            onChange={handleTextChange} 
+                            onKeyDown={handleKeyDown}
                             placeholder="Capture a thought... (@tag, #Category, !urgent, ~spark) (N)" 
                             aria-label="Capture a new task or thought"
                             className="w-full bg-[var(--color-bg-secondary)]/80 backdrop-blur-xl text-[var(--color-text-primary)] placeholder:text-[var(--color-text-secondary)]/50 text-sm sm:text-base px-5 py-3.5 rounded-2xl border border-white/10 focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/30 shadow-xl transition-all"

@@ -106,6 +106,22 @@ export const useStatsAndGrove = ({
         setTasks(prevTasks => prevTasks.map(t =>
             t.id === taskId ? { ...t, focusSessions: (t.focusSessions || 0) + 1 } : t
         ));
+
+        // Append timestamped log to offline focus history
+        try {
+            const task = tasks.find(t => t.id === taskId);
+            const history = JSON.parse(localStorage.getItem('aura-focus-history') || '[]');
+            history.push({
+                timestamp: new Date().toISOString(),
+                taskId,
+                category: task?.category || 'General',
+                durationMinutes: 25
+            });
+            localStorage.setItem('aura-focus-history', JSON.stringify(history));
+        } catch (e) {
+            console.error('Failed to log focus history to localStorage:', e);
+        }
+
         showNotification("Focus session complete!", {
             body: `Great work on: ${tasks.find(t => t.id === taskId)?.text}`,
         });

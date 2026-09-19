@@ -1,4 +1,4 @@
-const CACHE_NAME = 'aura-offline-v4';
+const CACHE_NAME = 'aura-offline-v5';
 const STATIC_ASSETS = [
     '/',
     '/index.html',

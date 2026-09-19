@@ -11,7 +11,7 @@ export const useTaskOperations = ({
     ui,
     playSoundEffect
 }) => {
-    // Undo stack: stores last deleted task for 8 seconds
+    // Universal Undo stack: stores previous state for 5 seconds
     const undoRef = useRef(null);
     const undoTimerRef = useRef(null);
 
@@ -23,14 +23,57 @@ export const useTaskOperations = ({
         undoRef.current = null;
     }, []);
 
-    const undoDelete = useCallback(() => {
-        if (undoRef.current) {
-            const restoredTask = undoRef.current;
-            setTasks(prev => [restoredTask, ...prev]);
+    const performUndo = useCallback(() => {
+        if (!undoRef.current) return;
+        const action = undoRef.current;
+        clearUndo();
+
+        if (action.type === 'delete' || action.type === 'forgive') {
+            const restoredTask = action.task;
+            setTasks(prev => [restoredTask, ...prev.filter(t => t.id !== restoredTask.id)]);
             ui.setToastMessage({ type: 'success', text: '↩ Task restored!' });
-            clearUndo();
+        } else if (action.type === 'toggle') {
+            // Revert completion state
+            setTasks(prev => prev.map(t => t.id === action.taskId ? {
+                ...t,
+                completed: action.prevCompleted,
+                completionDate: action.prevCompletionDate
+            } : t));
+            // Revert grove growth if was completing
+            if (!action.prevCompleted && action.wasCompleting) {
+                setGrove(prevGrove => {
+                    const latestTreeIndex = prevGrove.findLastIndex(tree => tree.growthPoints > 0);
+                    if (latestTreeIndex > -1) {
+                        const newGrove = [...prevGrove];
+                        newGrove[latestTreeIndex] = {
+                            ...newGrove[latestTreeIndex],
+                            growthPoints: Math.max(0, newGrove[latestTreeIndex].growthPoints - 1)
+                        };
+                        return newGrove;
+                    }
+                    return prevGrove;
+                });
+            }
+            ui.setToastMessage({ type: 'success', text: '↩ Status reversed!' });
+        } else if (action.type === 'archive') {
+            setTasks(prev => prev.map(t => t.id === action.taskId ? { ...t, isArchived: false } : t));
+            ui.setToastMessage({ type: 'success', text: '↩ Task unarchived!' });
         }
-    }, [setTasks, ui, clearUndo]);
+    }, [setTasks, setGrove, ui, clearUndo]);
+
+    const registerUndo = useCallback((actionData, toastText, toastType = 'info') => {
+        clearUndo();
+        undoRef.current = actionData;
+        ui.setToastMessage({
+            type: toastType,
+            text: toastText,
+            onUndo: performUndo
+        });
+        undoTimerRef.current = setTimeout(() => {
+            undoRef.current = null;
+            undoTimerRef.current = null;
+        }, 5000);
+    }, [clearUndo, performUndo, ui]);
 
     // Add task (direct or from template) with intelligent metadata parsing
     const addTask = useCallback((text, applyTemplate = null) => {
@@ -197,7 +240,21 @@ export const useTaskOperations = ({
         }
 
         setTasks(newTasks);
-    }, [tasks, setTasks, setGrove, playSoundEffect, ui]);
+
+        // Register undo for completion toggle
+        const taskName = taskToToggle.text.length > 25 ? taskToToggle.text.substring(0, 25) + '…' : taskToToggle.text;
+        registerUndo(
+            {
+                type: 'toggle',
+                taskId: id,
+                prevCompleted: taskToToggle.completed,
+                prevCompletionDate: taskToToggle.completionDate,
+                wasCompleting: isCompleting
+            },
+            isCompleting ? `Completed: "${taskName}" ✨` : `Active: "${taskName}" ⚡`,
+            'success'
+        );
+    }, [tasks, setTasks, setGrove, playSoundEffect, ui, registerUndo]);
 
     const togglePin = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
@@ -208,14 +265,12 @@ export const useTaskOperations = ({
         ui.setWinModalTaskId(null);
     }, [setTasks, ui]);
 
-    const deleteTask = useCallback(async (id) => {
+    const deleteTask = useCallback(async (id, isForgive = false) => {
         const taskToDelete = tasks.find(t => t.id === id);
 
         // Save to undo stack before deleting
         if (taskToDelete) {
             clearUndo();
-            undoRef.current = { ...taskToDelete };
-
             if (taskToDelete.attachments) {
                 for (const att of taskToDelete.attachments) {
                     await deleteFile(att.id);
@@ -230,23 +285,39 @@ export const useTaskOperations = ({
 
         setTasks(prev => prev.filter(task => task.id !== id));
 
-        // Show toast with undo action (8s window)
+        // Show toast with undo action (5s window)
         if (taskToDelete) {
-            ui.setToastMessage({
-                type: 'info',
-                text: `"${taskToDelete.text.substring(0, 30)}${taskToDelete.text.length > 30 ? '…' : ''}" deleted`,
-                onUndo: undoDelete
-            });
-            undoTimerRef.current = setTimeout(() => {
-                undoRef.current = null;
-                undoTimerRef.current = null;
-            }, 8000);
+            const taskName = taskToDelete.text.length > 25 ? taskToDelete.text.substring(0, 25) + '…' : taskToDelete.text;
+            registerUndo(
+                {
+                    type: isForgive ? 'forgive' : 'delete',
+                    task: { ...taskToDelete }
+                },
+                isForgive ? `Forgiven & released: "${taskName}" 🍃` : `Deleted: "${taskName}"`,
+                'info'
+            );
         }
-    }, [tasks, setTasks, clearUndo, undoDelete, ui]);
+    }, [tasks, setTasks, clearUndo, registerUndo]);
+
+    const forgiveTask = useCallback((id) => {
+        deleteTask(id, true);
+    }, [deleteTask]);
 
     const archiveTask = useCallback((id) => {
+        const taskToArchive = tasks.find(t => t.id === id);
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t));
-    }, [setTasks]);
+        if (taskToArchive) {
+            const taskName = taskToArchive.text.length > 25 ? taskToArchive.text.substring(0, 25) + '…' : taskToArchive.text;
+            registerUndo(
+                {
+                    type: 'archive',
+                    taskId: id
+                },
+                `Archived: "${taskName}" 📦`,
+                'info'
+            );
+        }
+    }, [tasks, setTasks, registerUndo]);
 
     const restoreTask = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
@@ -396,12 +467,27 @@ export const useTaskOperations = ({
         }));
     }, [setTasks, playSoundEffect]);
 
+    const reorderSectionTasks = useCallback((orderedSectionTasks) => {
+        if (!orderedSectionTasks || orderedSectionTasks.length === 0) return;
+        setTasks(prevTasks => {
+            const currentSectionIds = new Set(orderedSectionTasks.map(t => t.id));
+            let sectionIndex = 0;
+            return prevTasks.map(t => {
+                if (currentSectionIds.has(t.id)) {
+                    return orderedSectionTasks[sectionIndex++];
+                }
+                return t;
+            });
+        });
+    }, [setTasks]);
+
     return {
         addTask,
         toggleTask,
         togglePin,
         saveWin,
         deleteTask,
+        forgiveTask,
         archiveTask,
         restoreTask,
         saveTaskDetail,
@@ -412,8 +498,10 @@ export const useTaskOperations = ({
         deleteVoiceNoteFromTask,
         saveTemplate,
         reorderTask,
+        reorderSectionTasks,
         moveTaskToSection,
         toggleSubtask,
-        undoDelete
+        undoDelete: performUndo,
+        undoLastAction: performUndo
     };
 };

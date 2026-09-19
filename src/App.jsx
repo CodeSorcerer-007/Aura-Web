@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
@@ -14,6 +14,7 @@ import { CaptureInput } from './components/common/CaptureInput';
 import { BottomNav } from './components/common/BottomNav';
 import { LoadingScreen } from './components/common/LoadingScreen';
 import { ModalManager } from './components/common/ModalManager';
+import { XIcon } from './components/common/Icons';
 
 import { FlowView } from './components/views/FlowView';
 import SkipToContent from './components/common/SkipToContent';
@@ -40,6 +41,7 @@ const AuraAppContent = () => {
         assistantMessage, setAssistantMessage,
         setFocusTaskId,
         setDetailModal,
+        togglePin,
     } = useUI();
 
     const {
@@ -51,11 +53,12 @@ const AuraAppContent = () => {
         dailyQuote,
         addTask,
         toggleTask,
-        togglePin,
         deleteTask,
+        forgiveTask,
         archiveTask,
         saveTemplate,
         reorderTask,
+        reorderSectionTasks,
         toggleSubtask,
         handlePlantSeed,
         shutdownRitual,
@@ -79,6 +82,45 @@ const AuraAppContent = () => {
 
     const isLoading = !allDataLoaded || !themeLoaded || !customThemesLoaded;
 
+    const [welcomeBanner, setWelcomeBanner] = useState(null);
+
+    // Session Continuity: Restore scroll position & persist on scroll
+    useEffect(() => {
+        try {
+            const savedScroll = sessionStorage.getItem(`aura-scroll-${currentView}`);
+            if (savedScroll) {
+                window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'instant' });
+            }
+        } catch {}
+
+        const handleScroll = () => {
+            sessionStorage.setItem(`aura-scroll-${currentView}`, window.scrollY.toString());
+        };
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [currentView]);
+
+    // Session Continuity: Welcome Back context on app reopen (>15 min)
+    useEffect(() => {
+        if (!allDataLoaded) return;
+        try {
+            const lastSessionTime = localStorage.getItem('aura-last-session-timestamp');
+            const now = Date.now();
+            localStorage.setItem('aura-last-session-timestamp', now.toString());
+
+            if (lastSessionTime && now - parseInt(lastSessionTime, 10) > 15 * 60 * 1000) {
+                const activeCount = tasks.filter(t => !t.completed && !t.isArchived).length;
+                const viewName = currentView.charAt(0).toUpperCase() + currentView.slice(1);
+                setWelcomeBanner({
+                    viewName,
+                    activeCount
+                });
+                const timer = setTimeout(() => setWelcomeBanner(null), 7000);
+                return () => clearTimeout(timer);
+            }
+        } catch {}
+    }, [allDataLoaded]);
+
     const filteredTasks = useMemo(() => {
         const nonArchived = tasks.filter(t => !t.isArchived);
         if (activeFilter.type === 'all') return nonArchived;
@@ -94,6 +136,8 @@ const AuraAppContent = () => {
         return nonArchived;
     }, [tasks, activeFilter]);
 
+    const allTags = useMemo(() => [...new Set(tasks.flatMap(t => t.tags || []))], [tasks]);
+
     // Active custom theme styles
     const activeCustomTheme = useMemo(() => customThemes.find(ct => ct.id === theme), [customThemes, theme]);
 
@@ -105,7 +149,8 @@ const AuraAppContent = () => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, tags: [...new Set([...(t.tags || []), 'someday'])], priority: 1 } : t));
     };
     const handleForgiveStaleTask = (id) => {
-        deleteTask(id);
+        if (forgiveTask) forgiveTask(id);
+        else deleteTask(id);
     };
 
     return (
@@ -141,6 +186,33 @@ const AuraAppContent = () => {
                 >
                     <SkipToContent targetId="main-content" />
                     <main id="main-content" tabIndex="-1" className="flex-grow pt-8 pb-48 px-4 sm:px-6 lg:px-8 relative z-10 focus:outline-none">
+                        {/* Session Continuity Welcome Back Banner */}
+                        <AnimatePresence>
+                            {welcomeBanner && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -20, scale: 0.98 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: -15, scale: 0.98 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="max-w-2xl mx-auto mb-6 p-3 sm:px-4 sm:py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-purple-500/10 to-teal-500/15 border border-amber-400/30 backdrop-blur-xl shadow-lg flex items-center justify-between gap-3 text-xs"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <span className="text-base">🌙</span>
+                                        <p className="text-[var(--color-text-primary)] font-medium">
+                                            <span className="font-bold text-amber-300">Welcome back</span> — you left off in <span className="font-semibold text-purple-300">{welcomeBanner.viewName}</span>. You have <span className="font-bold text-emerald-400">{welcomeBanner.activeCount} active tasks</span> for today.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setWelcomeBanner(null)}
+                                        className="p-1 text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] rounded transition-colors flex-shrink-0"
+                                        aria-label="Dismiss welcome banner"
+                                    >
+                                        <XIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
                         <Header
                             momentumProgress={momentumProgress}
                             onSettingsClick={() => setIsSettingsOpen(true)}
@@ -168,7 +240,7 @@ const AuraAppContent = () => {
                                     }}
                                     allowSeedInput={shutdownRitual.active && shutdownRitual.step === 1}
                                     onPlantSeed={plantTomorrowSeed}
-                                />
+                                    />
                             )}
                         </AnimatePresence>
 
@@ -184,6 +256,7 @@ const AuraAppContent = () => {
                                         activeFilter={activeFilter}
                                         setActiveFilter={setActiveFilter}
                                         onReorder={reorderTask}
+                                        onReorderSectionTasks={reorderSectionTasks}
                                         onToggleSubtask={toggleSubtask}
                                         allTasks={tasks}
                                         allCategories={allCategories}
@@ -195,6 +268,7 @@ const AuraAppContent = () => {
                                         tunnelVision={tunnelVision}
                                         setTunnelVision={setTunnelVision}
                                         moveTaskToSection={moveTaskToSection}
+                                        stats={stats}
                                     />
                                 )}
                                 {currentView === 'constellations' && (
@@ -247,6 +321,7 @@ const AuraAppContent = () => {
                         <CaptureInput
                             onAddTask={addTask}
                             onOpenBrainSweep={() => setIsBrainSweepOpen(true)}
+                            allTags={allTags}
                         />
                     )}
                     <BottomNav currentView={currentView} setCurrentView={setCurrentView} />
