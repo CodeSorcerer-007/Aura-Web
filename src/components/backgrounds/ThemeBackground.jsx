@@ -164,6 +164,23 @@ const CircadianSky = () => {
 export const ThemeBackground = ({ theme }) => {
     return (
         <div className={`theme-bg theme-bg-${theme}`}>
+            {theme === 'dark' && (
+                <div className="dark-stardust pointer-events-none">
+                    <div className="dark-aurora-glow"></div>
+                    {[...Array(25)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="dark-star"
+                            style={{
+                                top: `${(i * 7.9) % 95}%`,
+                                left: `${(i * 13.1) % 98}%`,
+                                animationDuration: `${4 + (i % 5) * 1.5}s`,
+                                animationDelay: `${(i * 0.4).toFixed(1)}s`
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
             {theme === 'circadian' && (
                 <CircadianSky />
             )}
