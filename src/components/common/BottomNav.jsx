@@ -18,32 +18,52 @@ export const BottomNav = ({ currentView, setCurrentView }) => {
     ];
 
     const bottomClass = currentView === 'flow'
-        ? 'bottom-[calc(5.2rem+env(safe-area-inset-bottom))]'
+        ? 'bottom-[calc(7.2rem+env(safe-area-inset-bottom))]'
         : 'bottom-[calc(1.5rem+env(safe-area-inset-bottom))]';
 
     return (
-        <div className={`fixed ${bottomClass} left-0 right-0 z-20 flex justify-center px-4 pointer-events-none transition-all duration-300 ease-in-out`}>
-            <div className="flex items-center gap-1 sm:gap-2 bg-[var(--color-bg-secondary)]/80 backdrop-blur-lg border border-[var(--color-border)] rounded-full p-2 pointer-events-auto">
-                {navItems.map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => setCurrentView(item.id)}
-                        className={`relative px-2 sm:px-4 py-2 rounded-full text-sm transition-colors ${currentView === item.id ? 'text-[var(--color-text-primary)]' : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'}`}
-                    >
-                        {currentView === item.id && (
-                            <motion.div
-                                layoutId="nav-bubble"
-                                className="absolute inset-0 bg-[var(--color-bg-secondary-hover)] rounded-full"
-                                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                            />
-                        )}
-                        <span className="relative z-10 flex items-center gap-2">
-                            {React.cloneElement(item.icon, { className: "w-5 h-5" })}
-                            <span className="hidden sm:inline">{item.label}</span>
-                        </span>
-                    </button>
-                ))}
+        <nav 
+            aria-label="Main Navigation"
+            className={`fixed ${bottomClass} left-0 right-0 z-20 flex justify-center px-4 pointer-events-none transition-all duration-300 ease-out`}
+        >
+            <div className="flex items-center gap-1 sm:gap-1.5 aura-glass-floating rounded-full p-1.5 sm:p-2 pointer-events-auto shadow-2xl">
+                {navItems.map(item => {
+                    const isActive = currentView === item.id;
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => setCurrentView(item.id)}
+                            aria-label={item.label}
+                            aria-current={isActive ? 'page' : undefined}
+                            className={`relative px-3 sm:px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-accent)] ${
+                                isActive 
+                                    ? 'text-[var(--color-text-primary)] font-semibold' 
+                                    : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-white/5'
+                            }`}
+                        >
+                            {isActive && (
+                                <motion.div
+                                    layoutId="nav-pill"
+                                    className="absolute inset-0 bg-[var(--color-bg-secondary-hover)] rounded-full border border-white/10 shadow-inner"
+                                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                                />
+                            )}
+                            <span className="relative z-10 flex items-center gap-1.5 sm:gap-2">
+                                {React.cloneElement(item.icon, {
+                                    className: `w-4 h-4 sm:w-5 sm:h-5 transition-all duration-300 ${
+                                        isActive 
+                                            ? 'scale-110 text-[var(--color-accent)] filter drop-shadow-[0_0_8px_var(--color-accent)]' 
+                                            : 'opacity-70 group-hover:opacity-100'
+                                    }`
+                                })}
+                                <span className={`${isActive ? 'inline' : 'hidden sm:inline'} tracking-tight`}>
+                                    {item.label}
+                                </span>
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
-        </div>
+        </nav>
     );
 };

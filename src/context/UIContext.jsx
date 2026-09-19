@@ -21,6 +21,10 @@ export const UIProvider = ({ children }) => {
     const [templateSuggestion, setTemplateSuggestion] = useState(null);
     const [assistantMessage, setAssistantMessage] = useState(null);
     const [isPlanting, setIsPlanting] = useState(false);
+    // Moved from App.jsx local state into UIContext for ModalManager access
+    const [isAmbientSoundOpen, setIsAmbientSoundOpen] = useState(false);
+    const [isBrainSweepOpen, setIsBrainSweepOpen] = useState(false);
+    const [isHarvestCardOpen, setIsHarvestCardOpen] = useState(false);
 
     const value = {
         currentView,
@@ -58,7 +62,13 @@ export const UIProvider = ({ children }) => {
         assistantMessage,
         setAssistantMessage,
         isPlanting,
-        setIsPlanting
+        setIsPlanting,
+        isAmbientSoundOpen,
+        setIsAmbientSoundOpen,
+        isBrainSweepOpen,
+        setIsBrainSweepOpen,
+        isHarvestCardOpen,
+        setIsHarvestCardOpen
     };
 
     return (

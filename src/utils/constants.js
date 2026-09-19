@@ -32,6 +32,7 @@ export const achievementsList = [
 ];
 
 export const baseThemes = [
+    { id: 'circadian', name: 'Circadian Sky (Auto)', bg: 'bg-[#0a0e17]', text: 'text-amber-100' },
     { id: 'dark', name: 'OLED Dark', bg: 'bg-black', text: 'text-white' },
     { id: 'light', name: 'Clean Light', bg: 'bg-gray-100', text: 'text-black' },
     { id: 'cyberpunk', name: 'Cyberpunk', bg: 'bg-black', text: 'text-cyan-400' },
@@ -52,15 +53,15 @@ export const baseThemes = [
 
 export const getShutdownRitualMessages = (tasksCompletedToday = 0) => [
     `Let's wind down for the day. You completed ${tasksCompletedToday} tasks today. How do you feel?`,
-    "Is there anything left on your mind? Capture any final thoughts for tomorrow.",
-    "Your mind is clear. It's time to disconnect. See you tomorrow!"
+    "What is the single seed you want to nurture tomorrow morning?",
+    "Your mind is clear and tomorrow's seed is safely planted. It's time to disconnect. Good night!"
 ];
 
 export const demoTasks = [
-    { id: 1, text: "Welcome to Aura! Try capturing a thought below. Add tags like @home", completed: false, priority: 2, category: 'General', timeOfDay: 'morning', deadline: null, subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: '', attachments: [], tags: ['home'], isPinned: false, focusSessions: 0, isArchived: false },
-    { id: 2, text: "Mark a task as complete by clicking the circle", completed: true, priority: 2, category: 'General', timeOfDay: 'morning', deadline: null, subtasks: [], win: null, completionDate: new Date().toISOString().split('T')[0], recurring: null, dependsOn: null, notes: 'You can un-complete it too!', attachments: [], tags: [], isPinned: false, focusSessions: 1, isArchived: false },
-    { id: 3, text: "Create a high-priority task by adding '!' #Urgent", completed: false, priority: 3, category: 'Urgent', timeOfDay: 'afternoon', deadline: new Date().toISOString().split('T')[0], subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: '', attachments: [], tags: [], isPinned: true, focusSessions: 0, isArchived: false },
-    { id: 4, text: "This task repeats every day @routine", completed: false, priority: 2, category: 'Personal', timeOfDay: 'evening', deadline: new Date().toISOString().split('T')[0], subtasks: [], win: null, completionDate: null, recurring: { type: 'daily' }, dependsOn: null, notes: '', attachments: [], tags: ['routine'], isPinned: false, focusSessions: 0, isArchived: false },
-    { id: 5, text: "Organize project with subtasks", completed: false, priority: 2, category: 'Work', timeOfDay: 'afternoon', deadline: null, subtasks: [ { text: "Outline proposal", completed: true }, { text: "Draft initial designs", completed: false }, { text: "Get feedback", completed: false } ], win: null, completionDate: null, recurring: null, dependsOn: null, notes: 'Subtasks help break down complex goals.', attachments: [], tags: [], isPinned: false, focusSessions: 0, isArchived: false },
-    { id: 6, text: "Explore different views using the bottom navigation", completed: false, priority: 1, category: 'Ideas', timeOfDay: 'evening', deadline: null, subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: 'Each view gives a different perspective on your tasks.', attachments: [], tags: [], isPinned: false, focusSessions: 0, isArchived: false }
+    { id: 'demo-task-1', text: "Welcome to Aura! Try capturing a thought below. Add tags like @home", completed: false, priority: 2, category: 'General', timeOfDay: 'morning', deadline: null, subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: '', attachments: [], tags: ['home'], isPinned: false, focusSessions: 0, isArchived: false },
+    { id: 'demo-task-2', text: "Mark a task as complete by clicking the circle", completed: true, priority: 2, category: 'General', timeOfDay: 'morning', deadline: null, subtasks: [], win: null, completionDate: new Date().toISOString().split('T')[0], recurring: null, dependsOn: null, notes: 'You can un-complete it too!', attachments: [], tags: [], isPinned: false, focusSessions: 1, isArchived: false },
+    { id: 'demo-task-3', text: "Create a high-priority task by adding '!' #Urgent", completed: false, priority: 3, category: 'Urgent', timeOfDay: 'afternoon', deadline: new Date().toISOString().split('T')[0], subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: '', attachments: [], tags: [], isPinned: true, focusSessions: 0, isArchived: false },
+    { id: 'demo-task-4', text: "This task repeats every day @routine", completed: false, priority: 2, category: 'Personal', timeOfDay: 'evening', deadline: new Date().toISOString().split('T')[0], subtasks: [], win: null, completionDate: null, recurring: { type: 'daily' }, dependsOn: null, notes: '', attachments: [], tags: ['routine'], isPinned: false, focusSessions: 0, isArchived: false },
+    { id: 'demo-task-5', text: "Organize project with subtasks", completed: false, priority: 2, category: 'Work', timeOfDay: 'afternoon', deadline: null, subtasks: [ { text: "Outline proposal", completed: true }, { text: "Draft initial designs", completed: false }, { text: "Get feedback", completed: false } ], win: null, completionDate: null, recurring: null, dependsOn: null, notes: 'Subtasks help break down complex goals.', attachments: [], tags: [], isPinned: false, focusSessions: 0, isArchived: false },
+    { id: 'demo-task-6', text: "Explore different views using the bottom navigation", completed: false, priority: 1, category: 'Ideas', timeOfDay: 'evening', deadline: null, subtasks: [], win: null, completionDate: null, recurring: null, dependsOn: null, notes: 'Each view gives a different perspective on your tasks.', attachments: [], tags: [], isPinned: false, focusSessions: 0, isArchived: false }
 ];

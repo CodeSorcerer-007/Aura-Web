@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { parseIntelligentDeadline, getTodayDateString } from '../utils/dateUtils';
 import { setFile, deleteFile } from '../utils/db';
 
@@ -11,6 +11,27 @@ export const useTaskOperations = ({
     ui,
     playSoundEffect
 }) => {
+    // Undo stack: stores last deleted task for 8 seconds
+    const undoRef = useRef(null);
+    const undoTimerRef = useRef(null);
+
+    const clearUndo = useCallback(() => {
+        if (undoTimerRef.current) {
+            clearTimeout(undoTimerRef.current);
+            undoTimerRef.current = null;
+        }
+        undoRef.current = null;
+    }, []);
+
+    const undoDelete = useCallback(() => {
+        if (undoRef.current) {
+            const restoredTask = undoRef.current;
+            setTasks(prev => [restoredTask, ...prev]);
+            ui.setToastMessage({ type: 'success', text: '↩ Task restored!' });
+            clearUndo();
+        }
+    }, [setTasks, ui, clearUndo]);
+
     // Add task (direct or from template) with intelligent metadata parsing
     const addTask = useCallback((text, applyTemplate = null) => {
         playSoundEffect('add');
@@ -20,7 +41,7 @@ export const useTaskOperations = ({
             if (!template) return;
             const newTasks = template.tasks.map(t => ({
                 ...t,
-                id: Date.now() + Math.random(),
+                id: crypto.randomUUID(),
                 createdAt: new Date().toISOString(),
                 subtasks: [],
                 win: null,
@@ -84,12 +105,25 @@ export const useTaskOperations = ({
             cleanedText = cleanedText.replace(/evening|night/ig, '').trim();
         }
 
+        let energy = 'flow';
+        if (cleanedText.includes('~spark') || cleanedText.toLowerCase().includes('!spark') || cleanedText.toLowerCase().includes('deep focus')) {
+            energy = 'spark';
+            cleanedText = cleanedText.replace(/~spark|!spark/ig, '').trim();
+        } else if (cleanedText.includes('~rest') || cleanedText.toLowerCase().includes('!rest') || cleanedText.toLowerCase().includes('wind down')) {
+            energy = 'rest';
+            cleanedText = cleanedText.replace(/~rest|!rest/ig, '').trim();
+        } else if (cleanedText.includes('~flow') || cleanedText.toLowerCase().includes('!flow')) {
+            energy = 'flow';
+            cleanedText = cleanedText.replace(/~flow|!flow/ig, '').trim();
+        }
+
         const newTask = {
-            id: Date.now(),
+            id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
             text: cleanedText.replace(/  +/g, ' ').trim(),
             completed: false,
             priority,
+            energy,
             category,
             timeOfDay: time,
             deadline,
@@ -108,13 +142,13 @@ export const useTaskOperations = ({
         setTasks(prevTasks => [...prevTasks, newTask]);
     }, [templates, setTasks, ui, playSoundEffect]);
 
-    const toggleTask = useCallback((id) => {
+    const toggleTask = useCallback((id, isMonolith = false) => {
         const taskToToggle = tasks.find(t => t.id === id);
         if (!taskToToggle) return;
 
         const isCompleting = !taskToToggle.completed;
         if (isCompleting) {
-            playSoundEffect('complete');
+            playSoundEffect('complete', isMonolith);
         }
 
         const newTasks = tasks.map(t => {
@@ -134,7 +168,7 @@ export const useTaskOperations = ({
         if (taskToToggle.recurring) {
             const completedInstance = {
                 ...taskToToggle,
-                id: Date.now(),
+                id: crypto.randomUUID(),
                 createdAt: taskToToggle.createdAt || new Date().toISOString(),
                 completed: true,
                 recurring: null,
@@ -176,13 +210,39 @@ export const useTaskOperations = ({
 
     const deleteTask = useCallback(async (id) => {
         const taskToDelete = tasks.find(t => t.id === id);
-        if (taskToDelete && taskToDelete.attachments) {
-            for (const att of taskToDelete.attachments) {
-                await deleteFile(att.id);
+
+        // Save to undo stack before deleting
+        if (taskToDelete) {
+            clearUndo();
+            undoRef.current = { ...taskToDelete };
+
+            if (taskToDelete.attachments) {
+                for (const att of taskToDelete.attachments) {
+                    await deleteFile(att.id);
+                }
+            }
+            if (taskToDelete.voiceNotes) {
+                for (const vn of taskToDelete.voiceNotes) {
+                    await deleteFile(vn.id);
+                }
             }
         }
+
         setTasks(prev => prev.filter(task => task.id !== id));
-    }, [tasks, setTasks]);
+
+        // Show toast with undo action (8s window)
+        if (taskToDelete) {
+            ui.setToastMessage({
+                type: 'info',
+                text: `"${taskToDelete.text.substring(0, 30)}${taskToDelete.text.length > 30 ? '…' : ''}" deleted`,
+                onUndo: undoDelete
+            });
+            undoTimerRef.current = setTimeout(() => {
+                undoRef.current = null;
+                undoTimerRef.current = null;
+            }, 8000);
+        }
+    }, [tasks, setTasks, clearUndo, undoDelete, ui]);
 
     const archiveTask = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t));
@@ -192,9 +252,21 @@ export const useTaskOperations = ({
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
     }, [setTasks]);
 
-    const saveTaskDetail = useCallback((id, newText, newNotes, newTags) => {
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, text: newText, notes: newNotes, tags: newTags } : t));
+    const saveTaskDetail = useCallback((id, newText, newNotes, newTags, newEnergy) => {
+        setTasks(prev => prev.map(t => t.id === id ? {
+            ...t,
+            text: newText,
+            notes: newNotes,
+            tags: newTags,
+            ...(newEnergy ? { energy: newEnergy } : {})
+        } : t));
     }, [setTasks]);
+
+    const moveTaskToSection = useCallback((taskId, targetSection) => {
+        if (!['morning', 'afternoon', 'evening'].includes(targetSection)) return;
+        playSoundEffect('drop');
+        setTasks(prev => prev.map(t => t.id === taskId ? { ...t, timeOfDay: targetSection } : t));
+    }, [setTasks, playSoundEffect]);
 
     const setTaskDependency = useCallback((taskId, dependencyId) => {
         setTasks(prev => prev.map(t => t.id === taskId ? { ...t, dependsOn: dependencyId } : t));
@@ -224,6 +296,43 @@ export const useTaskOperations = ({
                     return {
                         ...task,
                         attachments: task.attachments.filter(att => att.id !== attachment.id),
+                    };
+                }
+                return task;
+            })
+        );
+    }, [setTasks]);
+
+    const addVoiceNoteToTask = useCallback(async (taskId, audioBlob, duration = 0) => {
+        const voiceId = `voice_${crypto.randomUUID()}`;
+        const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const voiceMeta = {
+            id: voiceId,
+            name: `Voice Memo ${timeStr}`,
+            duration: Math.round(duration),
+            createdAt: new Date().toISOString()
+        };
+        await setFile(voiceId, audioBlob);
+
+        setTasks(currentTasks =>
+            currentTasks.map(task => {
+                if (task.id === taskId) {
+                    const voiceNotes = task.voiceNotes || [];
+                    return { ...task, voiceNotes: [...voiceNotes, voiceMeta] };
+                }
+                return task;
+            })
+        );
+    }, [setTasks]);
+
+    const deleteVoiceNoteFromTask = useCallback(async (taskId, voiceNoteId) => {
+        await deleteFile(voiceNoteId);
+        setTasks(currentTasks =>
+            currentTasks.map(task => {
+                if (task.id === taskId) {
+                    return {
+                        ...task,
+                        voiceNotes: (task.voiceNotes || []).filter(vn => vn.id !== voiceNoteId)
                     };
                 }
                 return task;
@@ -282,8 +391,12 @@ export const useTaskOperations = ({
         setTaskDependency,
         addAttachmentToTask,
         deleteAttachmentFromTask,
+        addVoiceNoteToTask,
+        deleteVoiceNoteFromTask,
         saveTemplate,
         reorderTask,
-        toggleSubtask
+        moveTaskToSection,
+        toggleSubtask,
+        undoDelete
     };
 };

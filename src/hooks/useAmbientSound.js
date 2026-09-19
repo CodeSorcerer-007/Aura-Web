@@ -1,24 +1,43 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as Tone from 'tone';
 
 export const SOUND_OPTIONS = [
     { id: 'off', label: 'Off', icon: 'VolumeX' },
+    { id: 'solfeggio_432', label: '432 Hz Alpha Harmony', icon: 'Radio' },
+    { id: 'solfeggio_528', label: '528 Hz Transformation', icon: 'Zap' },
+    { id: 'chimes_procedural', label: 'Zen Tibetan Chimes', icon: 'Bell' },
     { id: 'rain', label: 'Rain', icon: 'CloudRain' },
     { id: 'ocean', label: 'Ocean Waves', icon: 'Waves' },
     { id: 'wind', label: 'Forest Wind', icon: 'Wind' },
     { id: 'waves_theta', label: 'Theta Waves (6Hz)', icon: 'Zap' },
     { id: 'waves_alpha', label: 'Alpha Focus (10Hz)', icon: 'Sparkles' },
-    { id: 'pink', label: 'Pink Noise', icon: 'Volume2' },
     { id: 'brown', label: 'Brown Noise', icon: 'Volume2' },
+    { id: 'pink', label: 'Pink Noise', icon: 'Volume2' },
     { id: 'white', label: 'White Noise', icon: 'Volume2' },
+];
+
+export const SLEEP_TIMER_OPTIONS = [
+    { id: 'off', label: 'Off' },
+    { id: 15, label: '15m' },
+    { id: 25, label: '25m' },
+    { id: 50, label: '50m' },
+    { id: 60, label: '60m' }
 ];
 
 export const useAmbientSound = (isActive, initialSound = 'off') => {
     const [soundType, setSoundType] = useState(initialSound);
     const [volume, setVolume] = useState(0.5); // 0 to 1
+    const [sleepTimer, setSleepTimerState] = useState('off'); // 'off' | 15 | 25 | 50 | 60
+    const [sleepSecondsLeft, setSleepSecondsLeft] = useState(0);
     const soundNodesRef = useRef(null);
+    const chimesIntervalRef = useRef(null);
 
     const cleanupSound = useCallback(() => {
+        if (chimesIntervalRef.current) {
+            clearInterval(chimesIntervalRef.current);
+            chimesIntervalRef.current = null;
+        }
+
         if (soundNodesRef.current) {
             try {
                 if (soundNodesRef.current.stop) soundNodesRef.current.stop();
@@ -130,6 +149,75 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
                     dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); gain.dispose(); },
                     setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val), 0.1); }
                 };
+            } else if (soundType === 'solfeggio_432') {
+                // 432 Hz Solfeggio Alpha Harmony with 8Hz theta beat
+                const oscMain = new Tone.Oscillator(432, 'sine');
+                const oscHarmonic = new Tone.Oscillator(432 + 8, 'sine'); // 8Hz binaural differential
+                const pannerL = new Tone.Panner(-0.6);
+                const pannerR = new Tone.Panner(0.6);
+                const gain = new Tone.Gain(Tone.dbToGain(dbVal * 0.75)).toDestination();
+
+                oscMain.connect(pannerL);
+                pannerL.connect(gain);
+                oscHarmonic.connect(pannerR);
+                pannerR.connect(gain);
+
+                soundNodesRef.current = {
+                    start: () => { oscMain.start(); oscHarmonic.start(); },
+                    stop: () => { oscMain.stop(); oscHarmonic.stop(); },
+                    dispose: () => { oscMain.dispose(); oscHarmonic.dispose(); pannerL.dispose(); pannerR.dispose(); gain.dispose(); },
+                    setVolume: (val) => { gain.gain.rampTo(Tone.dbToGain(val * 0.75), 0.1); }
+                };
+            } else if (soundType === 'solfeggio_528') {
+                // 528 Hz Transformation / Miracle frequency with warm overtone
+                const oscMain = new Tone.Oscillator(528, 'sine');
+                const oscOvertone = new Tone.Oscillator(1056, 'sine');
+                const gainMain = new Tone.Gain(Tone.dbToGain(dbVal * 0.8)).toDestination();
+                const gainOver = new Tone.Gain(Tone.dbToGain(dbVal * 0.2)).toDestination();
+
+                oscMain.connect(gainMain);
+                oscOvertone.connect(gainOver);
+
+                soundNodesRef.current = {
+                    start: () => { oscMain.start(); oscOvertone.start(); },
+                    stop: () => { oscMain.stop(); oscOvertone.stop(); },
+                    dispose: () => { oscMain.dispose(); oscOvertone.dispose(); gainMain.dispose(); gainOver.dispose(); },
+                    setVolume: (val) => {
+                        gainMain.gain.rampTo(Tone.dbToGain(val * 0.8), 0.1);
+                        gainOver.gain.rampTo(Tone.dbToGain(val * 0.2), 0.1);
+                    }
+                };
+            } else if (soundType === 'chimes_procedural') {
+                // Zen Tibetan Chimes: Generative pentatonic acoustic strikes every 30-50s
+                const poly = new Tone.PolySynth(Tone.Synth, {
+                    oscillator: { type: 'sine' },
+                    envelope: { attack: 0.05, decay: 4.5, sustain: 0, release: 3 }
+                }).toDestination();
+                poly.volume.value = dbVal - 2;
+
+                const notes = ['C4', 'Eb4', 'F4', 'G4', 'Bb4', 'C5', 'Eb5'];
+                const playRandomChime = () => {
+                    const note = notes[Math.floor(Math.random() * notes.length)];
+                    poly.triggerAttackRelease(note, 4.5);
+                };
+
+                // Play first chime shortly after start
+                const initialTimeout = setTimeout(playRandomChime, 1500);
+                chimesIntervalRef.current = setInterval(playRandomChime, 25000);
+
+                soundNodesRef.current = {
+                    start: () => {},
+                    stop: () => {
+                        clearTimeout(initialTimeout);
+                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
+                    },
+                    dispose: () => {
+                        clearTimeout(initialTimeout);
+                        if (chimesIntervalRef.current) clearInterval(chimesIntervalRef.current);
+                        poly.dispose();
+                    },
+                    setVolume: (val) => { poly.volume.rampTo(val - 2, 0.1); }
+                };
             } else if (soundType === 'waves_theta' || soundType === 'waves_alpha') {
                 // Binaural beats: Dual sine waves routed to Left and Right
                 const baseFreq = 200;
@@ -199,13 +287,86 @@ export const useAmbientSound = (isActive, initialSound = 'off') => {
         }
     };
 
+    // Sleep Timer countdown and auto-fade
+    const handleSetSleepTimer = (minutes) => {
+        setSleepTimerState(minutes);
+        if (minutes === 'off') {
+            setSleepSecondsLeft(0);
+        } else {
+            setSleepSecondsLeft(minutes * 60);
+        }
+    };
+
+    useEffect(() => {
+        if (sleepTimer === 'off' || sleepSecondsLeft <= 0 || !isActive || soundType === 'off') {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            setSleepSecondsLeft((prev) => {
+                if (prev <= 1) {
+                    cleanupSound();
+                    setSoundType('off');
+                    setSleepTimerState('off');
+                    return 0;
+                }
+
+                // Smooth gradual fade in the final 60 seconds
+                if (prev <= 60 && soundNodesRef.current) {
+                    const fadeFactor = prev / 60;
+                    const fadeDb = Tone.gainToDb(volume * 0.4 * fadeFactor);
+                    if (soundNodesRef.current.setVolume) {
+                        soundNodesRef.current.setVolume(fadeDb);
+                    } else if (soundNodesRef.current.volume) {
+                        soundNodesRef.current.volume.value = fadeDb;
+                    }
+                }
+
+                return prev - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [sleepTimer, sleepSecondsLeft, isActive, soundType, volume, cleanupSound]);
+
+    const formattedSleepTime = useMemo(() => {
+        if (sleepTimer === 'off' || sleepSecondsLeft <= 0) return null;
+        const mins = Math.floor(sleepSecondsLeft / 60);
+        const secs = sleepSecondsLeft % 60;
+        return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }, [sleepTimer, sleepSecondsLeft]);
+
     return {
         soundType,
         setSoundType,
         volume,
         setVolume: handleVolumeChange,
-        soundOptions: SOUND_OPTIONS
+        soundOptions: SOUND_OPTIONS,
+        sleepTimer,
+        sleepSecondsLeft,
+        setSleepTimer: handleSetSleepTimer,
+        sleepTimerOptions: SLEEP_TIMER_OPTIONS,
+        formattedSleepTime
     };
+};
+
+// Acoustic Tibetan Singing Bowl Harmonic Chime
+export const playTibetanBowl = (fundamental = 216) => {
+    try {
+        Tone.start().then(() => {
+            const now = Tone.now();
+            const poly = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.08, decay: 4.2, sustain: 0, release: 2.5 }
+            }).toDestination();
+            poly.volume.value = -6;
+
+            // Natural partials of an acoustic singing bowl (Fundamental, Octave, 5th, Shimmer)
+            poly.triggerAttackRelease([fundamental, fundamental * 2, fundamental * 2.98, fundamental * 4], 4.2, now);
+        }).catch(e => console.warn("Audio context unlock pending:", e));
+    } catch (e) {
+        console.warn("Tibetan bowl error:", e);
+    }
 };
 
 export const playUiSound = (effect, enabled = true) => {
@@ -222,13 +383,11 @@ export const playUiSound = (effect, enabled = true) => {
                     }).toDestination().triggerAttackRelease("C5", "16n", now);
                     break;
                 case 'complete':
-                    new Tone.Synth({
-                        oscillator: { type: 'triangle' },
-                        envelope: { attack: 0.02, decay: 0.2, sustain: 0.1, release: 0.2 }
-                    }).toDestination().triggerAttackRelease("E6", "8n", now);
+                    // Resonant Tibetan Singing Bowl chime on completing tasks
+                    playTibetanBowl(216);
                     break;
                 case 'achievement':
-                    new Tone.PluckSynth().toDestination().triggerAttackRelease("C7", "8n", now);
+                    playTibetanBowl(288);
                     break;
                 default:
                     break;

@@ -59,6 +59,83 @@ export const useRitualsAndNotifications = ({
         [tasksCompletedToday]
     );
 
+    const [lastShutdownNotifiedDate, setLastShutdownNotifiedDate] = useState(() => {
+        try {
+            return localStorage.getItem('aura_last_shutdown_reminder_date') || '';
+        } catch {
+            return '';
+        }
+    });
+
+    // Web Push Evening Shutdown Reminder Scheduler
+    useEffect(() => {
+        if (!shutdownTime) return;
+
+        const checkShutdownTime = () => {
+            const now = new Date();
+            const todayDate = getTodayDateString();
+            const currentHours = now.getHours().toString().padStart(2, '0');
+            const currentMinutes = now.getMinutes().toString().padStart(2, '0');
+            const currentTimeStr = `${currentHours}:${currentMinutes}`;
+
+            // Compare currentTime with configured shutdownTime (e.g. "21:00")
+            if (currentTimeStr === shutdownTime && lastShutdownNotifiedDate !== todayDate) {
+                setLastShutdownNotifiedDate(todayDate);
+                try {
+                    localStorage.setItem('aura_last_shutdown_reminder_date', todayDate);
+                } catch {}
+
+                // 1. Trigger Web Push / Native browser notification
+                if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
+                    try {
+                        new Notification("Aura — Evening Wind Down 🌙", {
+                            body: `It's ${shutdownTime}. Time to wrap up your focus, reflect on your accomplishments, and begin your evening shutdown ritual.`,
+                            icon: "/favicon.ico",
+                            tag: "aura-shutdown-reminder"
+                        });
+                    } catch (e) {
+                        console.warn("Notification error:", e);
+                    }
+                }
+
+                // 2. Activate shutdown ritual in UI with tranquil assistant prompt
+                setShutdownRitual({ active: true, step: 0 });
+                ui.setToastMessage?.({
+                    type: 'info',
+                    text: `Evening shutdown time (${shutdownTime}) reached. Time to wind down 🌙`
+                });
+            }
+        };
+
+        const interval = setInterval(checkShutdownTime, 20000);
+        checkShutdownTime();
+
+        return () => clearInterval(interval);
+    }, [shutdownTime, notificationsEnabled, lastShutdownNotifiedDate, ui]);
+
+    // Test shutdown notification on demand
+    const testShutdownReminder = useCallback(async () => {
+        if ('Notification' in window) {
+            if (Notification.permission !== 'granted') {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    ui.setToastMessage?.({ type: 'error', text: 'Browser notification permission denied.' });
+                    return;
+                }
+            }
+            try {
+                new Notification("Aura — Evening Wind Down 🌙", {
+                    body: `It's ${shutdownTime}. Time to wrap up your focus, reflect on your accomplishments, and begin your evening shutdown ritual.`,
+                    icon: "/favicon.ico"
+                });
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+        setShutdownRitual({ active: true, step: 0 });
+        ui.setToastMessage?.({ type: 'success', text: 'Evening reminder triggered! Check your notification 🌙' });
+    }, [shutdownTime, ui]);
+
     useEffect(() => {
         if (shutdownRitual.active) {
             ui.setAssistantMessage({ message: shutdownRitualMessages[shutdownRitual.step] });
@@ -156,6 +233,7 @@ export const useRitualsAndNotifications = ({
         showNotification,
         handleSetNotifications,
         handleExport,
-        handleImportFile
+        handleImportFile,
+        testShutdownReminder
     };
 };

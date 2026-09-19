@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
+const MINDFUL_PROMPTS = ['Breathe in...', 'Hold...', 'Breathe out...'];
+const MINDFUL_DURATIONS = [4000, 2000, 6000];
+
 export const MindfulMinuteModal = ({ isOpen, onClose }) => {
     const [prompt, setPrompt] = useState('Prepare to begin...');
-    const prompts = ['Breathe in...', 'Hold...', 'Breathe out...'];
-    const durations = [4000, 2000, 6000];
 
     useEffect(() => {
         if (!isOpen) return;
@@ -13,9 +14,9 @@ export const MindfulMinuteModal = ({ isOpen, onClose }) => {
         let timer;
 
         const cycle = () => {
-            index = (index + 1) % prompts.length;
-            setPrompt(prompts[index]);
-            timer = setTimeout(cycle, durations[index]);
+            index = (index + 1) % MINDFUL_PROMPTS.length;
+            setPrompt(MINDFUL_PROMPTS[index]);
+            timer = setTimeout(cycle, MINDFUL_DURATIONS[index]);
         };
         
         const startTimeout = setTimeout(cycle, 1000);

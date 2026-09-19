@@ -32,8 +32,8 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
 
-    // Don't intercept non-GET requests or browser extension requests
-    if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) {
+    // Don't intercept non-GET requests, API endpoints, or browser extension requests
+    if (event.request.method !== 'GET' || !url.protocol.startsWith('http') || url.pathname.startsWith('/api')) {
         return;
     }
 

@@ -1,36 +1,34 @@
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 
-// --- Web-based Preferences Hook ---
+// --- Web-based Preferences Hook with Instant Synchronous Hydration ---
 export const usePreferences = (key, initialValue) => {
-    const [storedValue, setStoredValue] = useState(initialValue);
-    const [isLoaded, setIsLoaded] = useState(false);
-
-    useEffect(() => {
-        const loadValue = () => {
-            try {
+    const [storedValue, setStoredValue] = useState(() => {
+        try {
+            if (typeof window !== 'undefined') {
                 const item = window.localStorage.getItem(key);
                 if (item !== null) {
-                    setStoredValue(JSON.parse(item));
+                    return JSON.parse(item);
                 }
-            } catch (e) {
-                console.error(`Error reading preference ${key}`, e);
-                setStoredValue(initialValue);
-            } finally {
-                setIsLoaded(true);
             }
-        };
-        loadValue();
-    }, [key]);
+        } catch (e) {
+            console.error(`Error reading preference ${key}`, e);
+        }
+        return initialValue;
+    });
 
-    const setValue = (value) => {
+    const setValue = useCallback((value) => {
         try {
-            const valueToStore = value instanceof Function ? value(storedValue) : value;
-            setStoredValue(valueToStore);
-            window.localStorage.setItem(key, JSON.stringify(valueToStore));
+            setStoredValue(prev => {
+                const valueToStore = value instanceof Function ? value(prev) : value;
+                if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(key, JSON.stringify(valueToStore));
+                }
+                return valueToStore;
+            });
         } catch (e) {
             console.error(`Error setting preference ${key}`, e);
         }
-    };
+    }, [key]);
 
-    return [storedValue, setValue, isLoaded];
+    return [storedValue, setValue, true];
 };

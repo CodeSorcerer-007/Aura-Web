@@ -6,11 +6,19 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
     const [selectedIndex, setSelectedIndex] = useState(0);
     const inputRef = useRef(null);
 
-    useEffect(() => {
+    // Reset on open during render transition
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    if (prevIsOpen !== isOpen) {
+        setPrevIsOpen(isOpen);
         if (isOpen) {
             setSearchTerm('');
             setSelectedIndex(0);
-            setTimeout(() => inputRef.current?.focus(), 100);
+        }
+    }
+
+    useEffect(() => {
+        if (isOpen) {
+            setTimeout(() => inputRef.current?.focus(), 50);
         }
     }, [isOpen]);
 
@@ -18,10 +26,11 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
         if (!searchTerm) return commands;
         return commands.filter(cmd => cmd.label.toLowerCase().includes(searchTerm.toLowerCase()));
     }, [searchTerm, commands]);
-    
-    useEffect(() => {
+
+    const handleSearchChange = (e) => {
+        setSearchTerm(e.target.value);
         setSelectedIndex(0);
-    }, [filteredCommands]);
+    };
 
     const handleKeyDown = (e) => {
         if (e.key === 'ArrowDown') {
@@ -60,7 +69,7 @@ export const CommandPalette = ({ isOpen, onClose, commands }) => {
                     ref={inputRef}
                     type="text" 
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={handleSearchChange}
                     onKeyDown={handleKeyDown}
                     placeholder="Type a command or search..."
                     className="w-full bg-transparent text-lg p-4 focus:outline-none"

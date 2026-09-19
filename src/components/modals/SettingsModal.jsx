@@ -28,7 +28,8 @@ export const SettingsModal = ({
     onExport,
     onTriggerImport,
     notificationsEnabled,
-    onSetNotificationsEnabled
+    onSetNotificationsEnabled,
+    onTestShutdownReminder
 }) => {
     const [newCategoryName, setNewCategoryName] = useState('');
     if (!isOpen) return null;
@@ -151,16 +152,39 @@ export const SettingsModal = ({
                 </div>
 
                 <div className="mb-6">
-                    <h3 className="font-semibold text-[var(--color-text-primary)] mb-3">Productivity</h3>
-                    <div className="flex items-center justify-between bg-[var(--color-bg)] p-3 rounded-lg">
-                        <label htmlFor="shutdownTime">End of Day Time</label>
-                        <input 
-                            type="time"
-                            id="shutdownTime"
-                            value={shutdownTime}
-                            onChange={e => onSetShutdownTime(e.target.value)}
-                            className="bg-transparent border-none text-[var(--color-text-primary)] focus:outline-none"
-                        />
+                    <h3 className="font-semibold text-[var(--color-text-primary)] mb-3">Productivity & Evening Ritual</h3>
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between bg-[var(--color-bg)] p-3 rounded-lg">
+                            <div>
+                                <label htmlFor="shutdownTime" className="block text-sm font-medium">End of Day Time</label>
+                                <span className="text-[11px] text-[var(--color-text-secondary)]">Target wind-down time</span>
+                            </div>
+                            <input 
+                                type="time"
+                                id="shutdownTime"
+                                value={shutdownTime}
+                                onChange={e => onSetShutdownTime(e.target.value)}
+                                className="bg-transparent border border-white/10 rounded-lg px-2 py-1 text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-accent)]"
+                            />
+                        </div>
+
+                        <div className="bg-[var(--color-bg)] p-3 rounded-lg flex items-center justify-between">
+                            <div>
+                                <p className="text-xs font-medium text-[var(--color-text-primary)]">Web Push Evening Reminders</p>
+                                <p className="text-[11px] text-[var(--color-text-secondary)]">
+                                    Sends a tranquil browser notification at {shutdownTime} to close out your day.
+                                </p>
+                            </div>
+                            {onTestShutdownReminder && (
+                                <button
+                                    type="button"
+                                    onClick={onTestShutdownReminder}
+                                    className="px-3 py-1.5 text-xs rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-400/30 transition-colors whitespace-nowrap"
+                                >
+                                    Test Reminder
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
