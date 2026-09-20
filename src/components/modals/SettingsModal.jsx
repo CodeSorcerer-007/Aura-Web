@@ -8,7 +8,7 @@ import {
     UploadIcon,
     ArchiveIcon
 } from '../common/Icons';
-import { ShieldCheck, HardDrive, RotateCcw, Clock } from 'lucide-react';
+import { ShieldCheck, HardDrive, RotateCcw, Clock, Sparkles, Database } from 'lucide-react';
 
 export const SettingsModal = ({
     isOpen,
@@ -37,7 +37,28 @@ export const SettingsModal = ({
 }) => {
     const [newCategoryName, setNewCategoryName] = useState('');
     const [showSnapshots, setShowSnapshots] = useState(false);
+    const [showWhatsNew, setShowWhatsNew] = useState(false);
+    const [storageInfo, setStorageInfo] = useState({ usage: 'Local IndexedDB Active', quota: '', percent: 0 });
+
     const snapshots = getRollingSnapshots ? getRollingSnapshots() : [];
+
+    React.useEffect(() => {
+        if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
+            navigator.storage.estimate().then(estimate => {
+                if (estimate.usage !== undefined) {
+                    const usedMB = (estimate.usage / (1024 * 1024)).toFixed(2);
+                    const quotaMB = estimate.quota ? (estimate.quota / (1024 * 1024)).toFixed(0) : 'N/A';
+                    const pct = estimate.quota ? Math.min(100, Math.round((estimate.usage / estimate.quota) * 100)) : 1;
+                    setStorageInfo({
+                        usage: `${usedMB} MB`,
+                        quota: `${quotaMB} MB`,
+                        percent: pct
+                    });
+                }
+            }).catch(() => {});
+        }
+    }, []);
+
     if (!isOpen) return null;
     
     const addCategory = () => {
@@ -206,9 +227,34 @@ export const SettingsModal = ({
                     </h3>
                     <div className="bg-[var(--color-bg)] p-3 rounded-lg space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-[var(--color-text-secondary)]">Storage Mode</span>
-                            <span className="text-emerald-300 font-medium font-mono">100% Local (Private)</span>
+                            <span className="text-[var(--color-text-secondary)]">Storage Engine</span>
+                            <span className="text-emerald-300 font-medium font-mono flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                100% Offline Vault
+                            </span>
                         </div>
+
+                        {/* Storage Health Gauge */}
+                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5 space-y-1.5">
+                            <div className="flex items-center justify-between text-[11px]">
+                                <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
+                                    <Database className="w-3 h-3 text-emerald-400" />
+                                    <span>IndexedDB Footprint</span>
+                                </span>
+                                <span className="font-mono text-white/90">{storageInfo.usage} {storageInfo.quota ? `/ ${storageInfo.quota}` : ''}</span>
+                            </div>
+                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
+                                <div 
+                                    className="bg-emerald-400 h-full rounded-full transition-all" 
+                                    style={{ width: `${Math.max(4, storageInfo.percent)}%` }} 
+                                />
+                            </div>
+                            <div className="flex justify-between items-center text-[10px] text-white/40">
+                                <span>Zero External Telemetry</span>
+                                <span className="text-emerald-400/90 font-medium">Air-Gapped Validated</span>
+                            </div>
+                        </div>
+
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-[var(--color-text-secondary)]">Rolling Snapshots</span>
                             <button
@@ -269,7 +315,7 @@ export const SettingsModal = ({
                     </div>
                 </div>
 
-                <div>
+                <div className="mb-6">
                     <h3 className="font-semibold text-[var(--color-text-primary)] mb-3">Data Management</h3>
                     <div className="flex gap-2">
                         <button onClick={onExport} className="w-full flex items-center justify-center gap-2 bg-[var(--color-bg)] p-3 rounded-lg hover:bg-[var(--color-bg-secondary-hover)] cursor-pointer">
@@ -294,6 +340,75 @@ export const SettingsModal = ({
                     >
                         <RotateCcw className="w-3.5 h-3.5" /> Reset to Mindful Starter Flow
                     </button>
+                </div>
+
+                {/* What's New & Changelog Section */}
+                <div className="border-t border-white/10 pt-5">
+                    <div className="flex items-center justify-between mb-2">
+                        <h3 className="font-semibold text-[var(--color-text-primary)] flex items-center gap-2 text-sm">
+                            <Sparkles className="w-4 h-4 text-amber-400" />
+                            <span>What's New in Aura v1.1.0</span>
+                        </h3>
+                        <button
+                            type="button"
+                            onClick={() => setShowWhatsNew(!showWhatsNew)}
+                            className="text-xs text-[var(--color-accent)] hover:underline cursor-pointer"
+                        >
+                            {showWhatsNew ? 'Collapse Notes' : 'Release Notes'}
+                        </button>
+                    </div>
+                    <p className="text-[11px] text-[var(--color-text-secondary)] mb-3">
+                        Edition: Harmonic Architecture & Mindful Depth
+                    </p>
+
+                    {showWhatsNew && (
+                        <div className="p-3 bg-[var(--color-bg)] rounded-xl border border-white/5 space-y-2.5 text-xs">
+                            <div className="space-y-1">
+                                <span className="font-bold text-teal-300 flex items-center gap-1.5">
+                                    <span>🌿</span> Botanical Grove & Tree Renderer
+                                </span>
+                                <p className="text-[11px] text-[var(--color-text-secondary)] pl-5">
+                                    Modular SVG tree renderers (Oak, Cherry, Pine, Bonsai, Willow), weather rain toggle, and accomplishment wins journal.
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="font-bold text-indigo-300 flex items-center gap-1.5">
+                                    <span>🌌</span> Cosmic Constellations
+                                </span>
+                                <p className="text-[11px] text-[var(--color-text-secondary)] pl-5">
+                                    Multi-ring gravitational orbits, physics-based stellar filaments, and zoom magnification.
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="font-bold text-amber-300 flex items-center gap-1.5">
+                                    <span>🧘</span> Advanced Mindful Minute Breathing
+                                </span>
+                                <p className="text-[11px] text-[var(--color-text-secondary)] pl-5">
+                                    Box 4-4-4-4, Relax 4-7-8, and Energize 2-1-2-1 breathing rhythms with persistent session tracking.
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="font-bold text-sky-300 flex items-center gap-1.5">
+                                    <span>⚡</span> Real-time Natural Language Preview
+                                </span>
+                                <p className="text-[11px] text-[var(--color-text-secondary)] pl-5">
+                                    Smart syntax chip preview for #category, !priority, ~energy, @tag, and ~due dates while typing.
+                                </p>
+                            </div>
+
+                            <div className="space-y-1">
+                                <span className="font-bold text-emerald-300 flex items-center gap-1.5">
+                                    <span>🛡️</span> Zero-Knowledge Air-Gapped Sanctuary
+                                </span>
+                                <p className="text-[11px] text-[var(--color-text-secondary)] pl-5">
+                                    Automated rolling snapshots, JSON safety vault exports, and 100% offline client storage.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </motion.div>
         </motion.div>

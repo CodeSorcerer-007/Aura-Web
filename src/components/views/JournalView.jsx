@@ -1,9 +1,27 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { getTodayDateString } from '../../utils/dateUtils';
+import { getTodayDateString, formatLocalDate } from '../../utils/dateUtils';
 import { SparklesIcon } from '../common/Icons';
+import { EmptyState } from '../common/EmptyState';
 
-export const JournalView = ({ journalEntries, setJournalEntries, completedTasks }) => {
+const JOURNAL_PROMPTS = [
+    "What went well today?",
+    "What am I grateful for?",
+    "What was the biggest challenge?",
+    "One thing I learned today is...",
+    "How can I make tomorrow better?"
+];
+
+const MOOD_OPTIONS = [
+    { id: 'calm', emoji: '😌', label: 'Calm', glow: '#38bdf8' },
+    { id: 'energized', emoji: '⚡', label: 'Energized', glow: '#fbbf24' },
+    { id: 'focused', emoji: '🎯', label: 'Focused', glow: '#34d399' },
+    { id: 'grateful', emoji: '🌸', label: 'Grateful', glow: '#f472b6' },
+    { id: 'reflective', emoji: '🌙', label: 'Reflective', glow: '#a78bfa' },
+    { id: 'weary', emoji: '🍵', label: 'Restful', glow: '#94a3b8' }
+];
+
+export const JournalView = ({ journalEntries = [], setJournalEntries, completedTasks = [] }) => {
     const todayStr = getTodayDateString();
     const [selectedDate, setSelectedDate] = useState(todayStr);
     const [entryContent, setEntryContent] = useState('');
@@ -14,28 +32,14 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
 
     const recognitionRef = useRef(null);
 
-    const journalPrompts = [
-        "What went well today?",
-        "What am I grateful for?",
-        "What was the biggest challenge?",
-        "One thing I learned today is...",
-        "How can I make tomorrow better?"
-    ];
-
-    const moodOptions = [
-        { id: 'calm', emoji: '😌', label: 'Calm', glow: '#38bdf8' },
-        { id: 'energized', emoji: '⚡', label: 'Energized', glow: '#fbbf24' },
-        { id: 'focused', emoji: '🎯', label: 'Focused', glow: '#34d399' },
-        { id: 'grateful', emoji: '🌸', label: 'Grateful', glow: '#f472b6' },
-        { id: 'reflective', emoji: '🌙', label: 'Reflective', glow: '#a78bfa' },
-        { id: 'weary', emoji: '🍵', label: 'Restful', glow: '#94a3b8' }
-    ];
-
     // Synchronize content and mood when selected date changes
     useEffect(() => {
         const entry = journalEntries.find(e => e.date === selectedDate);
-        setEntryContent(entry?.content || '');
-        setSelectedMood(entry?.mood || null);
+        const timer = setTimeout(() => {
+            setEntryContent(entry?.content || '');
+            setSelectedMood(entry?.mood || null);
+        }, 0);
+        return () => clearTimeout(timer);
     }, [selectedDate, journalEntries]);
 
     // Generate past 7 days for the quick calendar strip
@@ -45,7 +49,7 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
         for (let i = 6; i >= 0; i--) {
             const d = new Date(base);
             d.setDate(base.getDate() - i);
-            const dateStr = d.toISOString().split('T')[0];
+            const dateStr = formatLocalDate(d);
             const hasEntry = journalEntries.some(e => e.date === dateStr && e.content?.trim());
             const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
             const dayNum = d.getDate();
@@ -53,6 +57,32 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
         }
         return days;
     }, [journalEntries]);
+
+    // Journal Analytics and Mood Sparkline
+    const statsSummary = useMemo(() => {
+        let totalWords = 0;
+        journalEntries.forEach(e => {
+            if (e.content) {
+                totalWords += e.content.trim().split(/\s+/).filter(Boolean).length;
+            }
+        });
+
+        const weeklyMoods = calendarStripDays.map(d => {
+            const entry = journalEntries.find(e => e.date === d.dateStr);
+            const moodObj = MOOD_OPTIONS.find(m => m.id === entry?.mood);
+            return {
+                dateStr: d.dateStr,
+                dayName: d.dayName,
+                mood: moodObj || null
+            };
+        });
+
+        return {
+            totalEntries: journalEntries.length,
+            totalWords,
+            weeklyMoods
+        };
+    }, [journalEntries, calendarStripDays]);
 
     // Clean up recognition on unmount
     useEffect(() => {
@@ -230,6 +260,18 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
                         className="bg-[var(--color-bg-secondary)]/80 backdrop-blur-md px-3.5 py-1.5 rounded-xl border border-white/10 text-xs font-mono cursor-pointer text-[var(--color-text-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
                     />
                 </div>
+
+                {/* Journal Quick Metrics Ribbon */}
+                <div className="flex items-center justify-center flex-wrap gap-2.5 mt-3 text-xs text-[var(--color-text-secondary)]">
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 font-mono flex items-center gap-1.5">
+                        <span>📖</span>
+                        <span>{statsSummary.totalEntries} {statsSummary.totalEntries === 1 ? 'reflection' : 'reflections'}</span>
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 font-mono flex items-center gap-1.5">
+                        <span>✍️</span>
+                        <span>{statsSummary.totalWords.toLocaleString()} words penned</span>
+                    </span>
+                </div>
             </div>
 
             {/* Mood Selector Row */}
@@ -245,7 +287,7 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
                     )}
                 </div>
                 <div className="flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
-                    {moodOptions.map(m => {
+                    {MOOD_OPTIONS.map(m => {
                         const isChosen = selectedMood === m.id;
                         return (
                             <button
@@ -307,7 +349,7 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
                         )}
 
                         <div className="flex flex-wrap gap-1.5">
-                            {journalPrompts.map(prompt => (
+                            {JOURNAL_PROMPTS.map(prompt => (
                                 <button 
                                     key={prompt} 
                                     type="button"
@@ -365,8 +407,35 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
                     </div>
                 </div>
 
-                {/* Right Column: Day's Harvest (Completed Tasks) */}
+                {/* Right Column: Day's Harvest & Mood Trail */}
                 <div className="space-y-4">
+                    {/* 7-Day Mood Resonance Trail */}
+                    <div className="aura-glass-card rounded-2xl p-4 border border-white/10">
+                        <h3 className="font-bold text-xs uppercase tracking-wider text-[var(--color-text-primary)]/80 mb-3">
+                            7-Day Mood Trail
+                        </h3>
+                        <div className="grid grid-cols-7 gap-1 text-center">
+                            {statsSummary.weeklyMoods.map((m, idx) => (
+                                <div 
+                                    key={idx} 
+                                    className={`p-2 rounded-xl border flex flex-col items-center gap-1 transition-all ${
+                                        m.dateStr === selectedDate 
+                                            ? 'bg-white/15 border-white/30 shadow-xs' 
+                                            : 'bg-white/5 border-transparent'
+                                    }`}
+                                    title={`${m.dayName}: ${m.mood ? m.mood.label : 'Unrecorded'}`}
+                                >
+                                    <span className="text-[10px] uppercase font-semibold text-[var(--color-text-secondary)]">
+                                        {m.dayName}
+                                    </span>
+                                    <span className="text-base">
+                                        {m.mood ? m.mood.emoji : '·'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
                     <div className="aura-glass-card rounded-2xl p-4 border border-white/10">
                         <div className="flex items-center justify-between mb-3">
                             <h3 className="font-bold text-xs uppercase tracking-wider text-[var(--color-text-primary)]/80">
@@ -388,9 +457,12 @@ export const JournalView = ({ journalEntries, setJournalEntries, completedTasks 
                                     </div>
                                 ))
                             ) : (
-                                <p className="text-xs text-[var(--color-text-secondary)] italic py-4 text-center">
-                                    No tasks completed on this day.
-                                </p>
+                                <EmptyState
+                                    icon="🌱"
+                                    title="Restful Day"
+                                    description="No tasks marked complete. Rest and stillness nurture the seeds of tomorrow."
+                                    compact={true}
+                                />
                             )}
                         </div>
                     </div>

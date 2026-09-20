@@ -138,6 +138,30 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
         };
     }, [tasks]);
 
+    // Energy Distribution & Completion Velocity
+    const energyData = useMemo(() => {
+        let spark = 0;
+        let flow = 0;
+        let rest = 0;
+        completedTasks.forEach(t => {
+            const e = (t.energy || '').toLowerCase();
+            if (e === 'spark' || e === 'high') spark++;
+            else if (e === 'rest' || e === 'low') rest++;
+            else flow++;
+        });
+        const total = completedTasks.length || 1;
+        return {
+            spark,
+            flow,
+            rest,
+            sparkPct: Math.round((spark / total) * 100),
+            flowPct: Math.round((flow / total) * 100),
+            restPct: Math.round((rest / total) * 100),
+            totalCompleted: completedTasks.length,
+            completionRate: tasks.length > 0 ? Math.round((completedTasks.length / tasks.length) * 100) : 0
+        };
+    }, [completedTasks, tasks]);
+
     return (
         <motion.div 
             initial={{ opacity: 0, y: 20 }} 
@@ -209,6 +233,107 @@ export const ReviewView = ({ tasks, achievements, allCategories, stats, onDelete
                             <span className="text-xs text-emerald-400 font-bold">days 🔥</span>
                         </div>
                         <p className="text-[10px] text-[var(--color-text-secondary)] mt-0.5">Consecutive focus</p>
+                    </div>
+                </div>
+            </div>
+
+            {/* Energy Harmony & Completion Velocity */}
+            <div className="p-5 bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl shadow-lg relative overflow-hidden">
+                <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2.5">
+                        <span className="p-2 rounded-xl bg-teal-400/15 text-teal-300 border border-teal-400/30 text-base">
+                            🌊
+                        </span>
+                        <div>
+                            <h3 className="text-lg font-bold text-[var(--color-text-primary)] flex items-center gap-2">
+                                Energy Harmony & Completion Velocity
+                                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-400/20 text-teal-200 border border-teal-400/30">
+                                    Balance
+                                </span>
+                            </h3>
+                            <p className="text-xs text-[var(--color-text-secondary)]">
+                                Harmonizing high-intensity focus with regenerative flow
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Energy Distribution */}
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-[var(--color-text-primary)]">Energy Rhythm Breakdown</span>
+                            <span className="text-[var(--color-text-secondary)]">{energyData.totalCompleted} completed tasks</span>
+                        </div>
+
+                        {/* Segmented Progress Bar */}
+                        <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden flex gap-0.5 p-0.5 border border-white/10">
+                            {energyData.sparkPct > 0 && (
+                                <div 
+                                    className="bg-amber-400 rounded-full h-full transition-all"
+                                    style={{ width: `${energyData.sparkPct}%` }}
+                                    title={`Spark: ${energyData.sparkPct}%`}
+                                />
+                            )}
+                            {energyData.flowPct > 0 && (
+                                <div 
+                                    className="bg-teal-400 rounded-full h-full transition-all"
+                                    style={{ width: `${energyData.flowPct}%` }}
+                                    title={`Flow: ${energyData.flowPct}%`}
+                                />
+                            )}
+                            {energyData.restPct > 0 && (
+                                <div 
+                                    className="bg-indigo-400 rounded-full h-full transition-all"
+                                    style={{ width: `${energyData.restPct}%` }}
+                                    title={`Rest: ${energyData.restPct}%`}
+                                />
+                            )}
+                        </div>
+
+                        {/* Energy Pills */}
+                        <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                            <div className="p-2 rounded-lg bg-amber-400/10 border border-amber-400/20">
+                                <span className="text-xs font-bold text-amber-300 block">⚡ Spark</span>
+                                <span className="text-[11px] text-amber-200/80 font-mono">{energyData.spark} ({energyData.sparkPct}%)</span>
+                            </div>
+                            <div className="p-2 rounded-lg bg-teal-400/10 border border-teal-400/20">
+                                <span className="text-xs font-bold text-teal-300 block">🌊 Flow</span>
+                                <span className="text-[11px] text-teal-200/80 font-mono">{energyData.flow} ({energyData.flowPct}%)</span>
+                            </div>
+                            <div className="p-2 rounded-lg bg-indigo-400/10 border border-indigo-400/20">
+                                <span className="text-xs font-bold text-indigo-300 block">🍃 Rest</span>
+                                <span className="text-[11px] text-indigo-200/80 font-mono">{energyData.rest} ({energyData.restPct}%)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Completion Velocity */}
+                    <div className="p-3.5 rounded-xl bg-[var(--color-bg)]/70 border border-white/5 flex flex-col justify-between space-y-3">
+                        <div className="flex justify-between items-center text-xs">
+                            <span className="font-semibold text-[var(--color-text-primary)]">Completion Velocity</span>
+                            <span className="text-emerald-400 font-mono font-bold">{energyData.completionRate}% Rate</span>
+                        </div>
+
+                        <div className="w-full bg-white/5 rounded-full h-2.5 overflow-hidden border border-white/10">
+                            <div 
+                                className="bg-gradient-to-r from-teal-400 to-emerald-400 h-full rounded-full transition-all duration-700"
+                                style={{ width: `${energyData.completionRate}%` }}
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] uppercase text-[var(--color-text-secondary)] block font-semibold">Harvested</span>
+                                <span className="text-sm font-bold text-emerald-300 font-mono">{energyData.totalCompleted}</span>
+                                <span className="text-[10px] text-[var(--color-text-secondary)]"> of {tasks.length} total</span>
+                            </div>
+                            <div className="p-2 rounded-lg bg-white/5 border border-white/5">
+                                <span className="text-[10px] uppercase text-[var(--color-text-secondary)] block font-semibold">Anti-Backlog</span>
+                                <span className="text-sm font-bold text-amber-300 font-mono">{staleTasks.length}</span>
+                                <span className="text-[10px] text-[var(--color-text-secondary)]"> pending grace</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

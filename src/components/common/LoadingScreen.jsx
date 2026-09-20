@@ -1,28 +1,83 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { SparklesIcon } from './Icons';
 
 export const LoadingScreen = () => (
     <motion.div
         key="loading-screen"
         initial={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.5 }}
-        className="fixed inset-0 bg-[var(--color-bg)] flex flex-col items-center justify-center z-[100]"
+        exit={{ opacity: 0, scale: 1.02 }}
+        transition={{ duration: 0.6, ease: 'easeInOut' }}
+        className="fixed inset-0 bg-[var(--color-bg,#0a0e17)] flex flex-col items-center justify-center z-[100] overflow-hidden select-none"
+        role="status"
+        aria-label="Loading Aura Mindful Sanctuary"
     >
-        <motion.div
-            animate={{
-                scale: [1, 1.1, 1],
-                opacity: [0.7, 1, 0.7],
-            }}
-            transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-            }}
+        {/* Ambient Celestial Nebula Glows */}
+        <div 
+            className="absolute w-96 h-96 rounded-full bg-[var(--color-accent,#34d399)]/15 blur-3xl pointer-events-none animate-pulse"
+            style={{ animationDuration: '4s' }}
+            aria-hidden="true" 
+        />
+        <div 
+            className="absolute w-72 h-72 rounded-full bg-purple-500/10 blur-3xl pointer-events-none"
+            style={{ transform: 'translate(40px, 40px)' }}
+            aria-hidden="true" 
+        />
+
+        {/* Pulsing Luminous Brand Glyph */}
+        <div className="relative mb-6">
+            <motion.div
+                animate={{
+                    scale: [1, 1.14, 1],
+                    rotate: [0, 4, -4, 0]
+                }}
+                transition={{
+                    duration: 3.5,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
+                className="w-20 h-20 rounded-3xl bg-[var(--color-bg-secondary,#111827)]/80 border border-white/15 flex items-center justify-center text-4xl shadow-2xl relative z-10 backdrop-blur-xl"
+            >
+                <span className="filter drop-shadow-[0_0_12px_var(--color-accent,#34d399)]">✨</span>
+            </motion.div>
+            <div className="absolute inset-0 rounded-3xl bg-[var(--color-accent,#34d399)]/30 blur-xl animate-pulse" />
+        </div>
+
+        {/* Brand Title */}
+        <motion.h1
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+            className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[var(--color-text-primary,#ffffff)] font-display"
         >
-            <SparklesIcon className="w-16 h-16 text-[var(--color-accent)]" />
-        </motion.div>
-        <h1 className="text-2xl font-bold mt-4 text-[var(--color-text-primary)]">Aura</h1>
+            Aura
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5, delay: 0.25 }}
+            className="text-xs sm:text-sm text-[var(--color-text-secondary,#94a3b8)] mt-2 font-medium tracking-wide text-center px-4"
+        >
+            Mindful Productivity & Ambient Flow
+        </motion.p>
+
+        {/* Elegant Animated Pulse Bar */}
+        <div className="w-36 h-1 bg-white/10 rounded-full mt-6 overflow-hidden relative">
+            <motion.div
+                className="h-full bg-gradient-to-r from-[var(--color-accent,#34d399)] to-teal-300 rounded-full"
+                animate={{
+                    x: ['-100%', '100%']
+                }}
+                transition={{
+                    duration: 1.6,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                }}
+                style={{ width: '60%' }}
+            />
+        </div>
     </motion.div>
 );
+
+export default LoadingScreen;

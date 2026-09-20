@@ -46,6 +46,13 @@ export const UIProvider = ({ children }) => {
     const [isAmbientSoundOpen, setIsAmbientSoundOpen] = useState(false);
     const [isBrainSweepOpen, setIsBrainSweepOpen] = useState(false);
     const [isHarvestCardOpen, setIsHarvestCardOpen] = useState(false);
+    const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
+        try {
+            return !localStorage.getItem('aura-onboarding-completed');
+        } catch {
+            return false;
+        }
+    });
 
     const value = {
         currentView,
@@ -89,7 +96,9 @@ export const UIProvider = ({ children }) => {
         isBrainSweepOpen,
         setIsBrainSweepOpen,
         isHarvestCardOpen,
-        setIsHarvestCardOpen
+        setIsHarvestCardOpen,
+        isOnboardingOpen,
+        setIsOnboardingOpen
     };
 
     return (

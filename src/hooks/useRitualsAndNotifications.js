@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getTodayDateString } from '../utils/dateUtils';
 import { getShutdownRitualMessages } from '../utils/constants';
+import { getAllStoredAttachments, putAllAttachments } from '../utils/db';
 
 export const useRitualsAndNotifications = ({
     tasksCompletedToday,
@@ -148,7 +149,6 @@ export const useRitualsAndNotifications = ({
     const handleExport = useCallback(async () => {
         let vaultAttachments = {};
         try {
-            const { getAllStoredAttachments } = await import('../utils/db');
             vaultAttachments = await getAllStoredAttachments();
         } catch (err) {
             console.warn('Could not read attachments for export:', err);
@@ -219,7 +219,6 @@ export const useRitualsAndNotifications = ({
                 // Restore any embedded attachments or voice notes into IndexedDB
                 if (data.vaultAttachments && typeof data.vaultAttachments === 'object') {
                     try {
-                        const { putAllAttachments } = await import('../utils/db');
                         await putAllAttachments(data.vaultAttachments);
                     } catch (attErr) {
                         console.warn('Error restoring vault attachments:', attErr);

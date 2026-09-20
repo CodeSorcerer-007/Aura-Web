@@ -26,6 +26,7 @@ const HarvestCardModal = lazy(() => import('../modals/HarvestCardModal').then(m 
 // Eagerly loaded (always visible)
 import { PlantingAnimation } from './PlantingAnimation';
 import { AchievementToast, GenericToast } from './Toast';
+import { OnboardingOverlay } from './OnboardingOverlay';
 
 // Suspense fallback (invisible — modals handle their own loading state)
 const ModalFallback = null;
@@ -67,6 +68,7 @@ export const ModalManager = () => {
         isAmbientSoundOpen, setIsAmbientSoundOpen,
         isBrainSweepOpen, setIsBrainSweepOpen,
         isHarvestCardOpen, setIsHarvestCardOpen,
+        isOnboardingOpen, setIsOnboardingOpen,
         setCurrentView
     } = useUI();
 
@@ -361,6 +363,12 @@ export const ModalManager = () => {
                     />
                 </LazyModal>
             </AnimatePresence>
+
+            {/* 4-Step Onboarding Coach Tour */}
+            <OnboardingOverlay
+                isOpen={isOnboardingOpen}
+                onClose={() => setIsOnboardingOpen(false)}
+            />
 
             {/* Hidden file input for import */}
             <input

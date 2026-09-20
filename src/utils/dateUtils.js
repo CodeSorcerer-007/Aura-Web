@@ -1,4 +1,12 @@
-export const getTodayDateString = () => new Date().toISOString().split('T')[0];
+export const formatLocalDate = (d) => {
+    if (!d || !(d instanceof Date) || isNaN(d.getTime())) return null;
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
+export const getTodayDateString = () => formatLocalDate(new Date());
 
 export const formatDate = (dateString) => {
     if (!dateString) return null;
@@ -85,7 +93,7 @@ export const parseIntelligentDeadline = (text) => {
             }
         },
         {
-            regex: /(?:on)?\s?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s(\d{1,2})/i,
+            regex: /(?:on)?\s?(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s(\d{1,2})(?:st|nd|rd|th)?/i,
             handler: (matches) => {
                 const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
                 const month = months.indexOf(matches[1].toLowerCase().substring(0, 3));
@@ -93,7 +101,8 @@ export const parseIntelligentDeadline = (text) => {
                 if (month === -1 || isNaN(day)) return null;
                 const year = now.getFullYear();
                 const d = new Date(year, month, day);
-                if (d < now) d.setFullYear(year + 1);
+                const todayStart = new Date(year, now.getMonth(), now.getDate());
+                if (d < todayStart) d.setFullYear(year + 1);
                 return d;
             }
         }
@@ -104,7 +113,7 @@ export const parseIntelligentDeadline = (text) => {
         if (match) {
             const dateResult = pattern.handler(match);
             if (dateResult) {
-                deadline = dateResult.toISOString().split('T')[0];
+                deadline = formatLocalDate(dateResult);
                 cleanedText = cleanedText.replace(match[0], '').replace(/  +/g, ' ').trim();
                 break;
             }
@@ -117,3 +126,4 @@ export const parseIntelligentDeadline = (text) => {
 
     return { deadline, cleanedText, recurring };
 };
+

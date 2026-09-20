@@ -206,9 +206,9 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
                     </div>
 
                     {/* Heatmap Grid with Weekday Labels on Left */}
-                    <div className="flex gap-1 items-start">
+                    <div className="flex gap-1 items-start" role="grid" aria-label={`Productivity calendar heatmap for year ${selectedYear}`}>
                         {/* Day labels (Sun, Mon, Tue, Wed, Thu, Fri, Sat) */}
-                        <div className="flex flex-col gap-[3px] text-[9px] text-[var(--color-text-secondary)]/70 pr-2 pt-0.5 select-none w-6 text-right leading-[11px]">
+                        <div className="flex flex-col gap-[3px] text-[9px] text-[var(--color-text-secondary)]/70 pr-2 pt-0.5 select-none w-6 text-right leading-[11px]" aria-hidden="true">
                             <span className="h-[11px]"></span>
                             <span className="h-[11px]">Mon</span>
                             <span className="h-[11px]"></span>
@@ -219,9 +219,9 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
                         </div>
 
                         {/* Jan to Dec Week Columns */}
-                        <div className="flex gap-[3px]">
+                        <div className="flex gap-[3px]" role="row">
                             {weeks.map((week, wIdx) => (
-                                <div key={wIdx} className="flex flex-col gap-[3px]">
+                                <div key={wIdx} className="flex flex-col gap-[3px]" role="presentation">
                                     {week.map((day) => {
                                         // Days not belonging to selectedYear are invisible placeholders
                                         if (!day.isCurrentYear) {
@@ -229,6 +229,7 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
                                                 <div
                                                     key={day.date}
                                                     className="w-[11px] h-[11px] rounded-[2px] opacity-0 pointer-events-none"
+                                                    aria-hidden="true"
                                                 />
                                             );
                                         }
@@ -241,10 +242,15 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
                                         return (
                                             <div
                                                 key={day.date}
+                                                role="gridcell"
+                                                tabIndex={0}
                                                 onMouseEnter={() => setHoveredDay(day)}
                                                 onMouseLeave={() => setHoveredDay(null)}
-                                                className={`w-[11px] h-[11px] rounded-[2px] border transition-all cursor-pointer hover:ring-2 hover:ring-white/50 hover:scale-125 hover:z-30 relative ${levelClass} ${todayHighlight}`}
+                                                onFocus={() => setHoveredDay(day)}
+                                                onBlur={() => setHoveredDay(null)}
+                                                className={`w-[11px] h-[11px] rounded-[2px] border transition-all cursor-pointer hover:ring-2 hover:ring-white/50 hover:scale-125 hover:z-30 relative focus:outline-none focus:ring-2 focus:ring-emerald-400 ${levelClass} ${todayHighlight}`}
                                                 title={`${day.count} ${day.count === 1 ? 'task' : 'tasks'} on ${formatDate(day.date)}${day.isToday ? ' (Today)' : ''}${day.isFuture ? ' (Future)' : ''}`}
+                                                aria-label={`${day.count} ${day.count === 1 ? 'task' : 'tasks'} completed on ${formatDate(day.date)}`}
                                             />
                                         );
                                     })}

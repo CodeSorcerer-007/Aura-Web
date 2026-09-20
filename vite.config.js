@@ -12,6 +12,7 @@ function auraOfflineServiceWorkerPlugin() {
   return {
     name: 'aura-offline-sw-generator',
     closeBundle() {
+      if (process.env.VITEST) return;
       const distDir = path.resolve(__dirname, 'dist');
       const assetsDir = path.join(distDir, 'assets');
       const swSourceFile = path.resolve(__dirname, 'public', 'sw.js');
@@ -56,6 +57,15 @@ export default defineConfig({
   plugins: [react(), auraOfflineServiceWorkerPlugin()],
   server: {
     port: 5173
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './tests/setup.js',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html']
+    }
   },
   build: {
     chunkSizeWarningLimit: 600,

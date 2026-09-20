@@ -30,6 +30,15 @@
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
   "categories": ["productivity", "utilities", "lifestyle"],
+  "lang": "en",
+  "dir": "ltr",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
+  "edge_side_panel": {
+    "preferred_width": 480
+  },
   "shortcuts": [
     {
       "name": "Flow",
@@ -45,6 +54,11 @@
       "name": "Journal",
       "url": "/?view=journal",
       "description": "Reflect in Daily Journal"
+    },
+    {
+      "name": "Mindful Breath",
+      "url": "/?action=breathe",
+      "description": "Start a 1-Minute Centering Pause"
     }
   ]
 }
