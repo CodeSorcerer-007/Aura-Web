@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
-import { motivationalQuotes, demoTasks } from '../utils/constants';
+import { motivationalQuotes } from '../utils/constants';
 import { getTodayDateString } from '../utils/dateUtils';
 import { useNotification } from './NotificationContext';
 import { useSettings } from './SettingsContext';
@@ -24,10 +24,19 @@ export const TaskProvider = ({ children }) => {
     const settings = useSettings();
     const groveCtx = useGrove();
 
-    // Task-specific persistent state
-    const [tasks, setTasks, tasksLoaded] = usePreferences('aura-tasks', demoTasks);
+    // Task-specific persistent state — defaults to clean empty slate
+    const [tasks, setTasks, tasksLoaded] = usePreferences('aura-tasks', []);
     const [templates, setTemplates, templatesLoaded] = usePreferences('aura-templates', []);
     const [tomorrowSeed, setTomorrowSeed] = usePreferences('aura-tomorrow-seed', null);
+
+    // Auto-remove any legacy demo data so the app remains 100% clean
+    useEffect(() => {
+        if (!tasksLoaded) return;
+        const hasDemoTasks = tasks.some(t => typeof t.id === 'string' && t.id.startsWith('demo-task-'));
+        if (hasDemoTasks) {
+            setTasks(prev => prev.filter(t => typeof t.id !== 'string' || !t.id.startsWith('demo-task-')));
+        }
+    }, [tasksLoaded, tasks, setTasks]);
 
     const allDataLoaded = tasksLoaded && templatesLoaded &&
         settings.settingsDataLoaded && groveCtx.groveDataLoaded;
