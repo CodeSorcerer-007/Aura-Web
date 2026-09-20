@@ -27,19 +27,23 @@ export const LoadingScreen = () => (
         <div className="relative mb-6">
             <motion.div
                 animate={{
-                    scale: [1, 1.14, 1],
-                    rotate: [0, 4, -4, 0]
+                    scale: [1, 1.08, 1],
+                    rotate: [0, 2, -2, 0]
                 }}
                 transition={{
                     duration: 3.5,
                     repeat: Infinity,
                     ease: "easeInOut"
                 }}
-                className="w-20 h-20 rounded-3xl bg-[var(--color-bg-secondary,#111827)]/80 border border-white/15 flex items-center justify-center text-4xl shadow-2xl relative z-10 backdrop-blur-xl"
+                className="w-24 h-24 rounded-3xl overflow-hidden shadow-2xl relative z-10 border border-white/20 bg-black/40 backdrop-blur-xl flex items-center justify-center"
             >
-                <span className="filter drop-shadow-[0_0_12px_var(--color-accent,#34d399)]">✨</span>
+                <img 
+                    src="/Aura_logo.png" 
+                    alt="Aura" 
+                    className="w-full h-full object-cover" 
+                />
             </motion.div>
-            <div className="absolute inset-0 rounded-3xl bg-[var(--color-accent,#34d399)]/30 blur-xl animate-pulse" />
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-tr from-amber-500/40 via-pink-500/40 to-purple-500/40 blur-2xl animate-pulse" />
         </div>
 
         {/* Brand Title */}

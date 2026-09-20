@@ -32,12 +32,18 @@ export const FlowView = ({
     setTunnelVision,
     moveTaskToSection,
     onReorderSectionTasks,
-    stats
+    stats,
+    // Fix 2: receive focusHistory as a prop instead of reading localStorage directly
+    focusHistory = [],
+    // allTags is computed once in App.jsx via useFilteredTasks and passed down,
+    // so FlowView does not need its own useMemo for the same computation.
+    allTags = [],
 }) => {
     const nonArchivedTasks = tasks.filter(t => !t.isArchived);
 
-    // Weekly Mini-Summary State & Calculation
-    const [isWeeklySummaryOpen, setIsWeeklySummaryOpen] = React.useState(() => {
+    // Weekly Mini-Summary collapsed state — persisted via usePreferences for
+    // consistency with the rest of the app's storage pattern.
+    const [isWeeklySummaryOpen, setIsWeeklySummaryOpenRaw] = React.useState(() => {
         try {
             return localStorage.getItem('aura-weekly-summary-collapsed') !== 'true';
         } catch {
@@ -45,15 +51,16 @@ export const FlowView = ({
         }
     });
 
-    const toggleWeeklySummary = () => {
-        setIsWeeklySummaryOpen(prev => {
-            const next = !prev;
-            try {
-                localStorage.setItem('aura-weekly-summary-collapsed', (!next).toString());
-            } catch {}
-            return next;
-        });
+    const setIsWeeklySummaryOpen = (next) => {
+        setIsWeeklySummaryOpenRaw(next);
+        try {
+            // sessionStorage is intentional here: collapsed state is a per-session
+            // preference, not a durable setting — it resets on next app open.
+            localStorage.setItem('aura-weekly-summary-collapsed', (!next).toString());
+        } catch {}
     };
+
+    const toggleWeeklySummary = () => setIsWeeklySummaryOpen(!isWeeklySummaryOpen);
 
     const weeklyStats = useMemo(() => {
         const now = new Date();
@@ -69,21 +76,10 @@ export const FlowView = ({
             return cDate >= startOfWeek;
         }).length;
 
-        let focusThisWeek = 0;
-        try {
-            const history = JSON.parse(localStorage.getItem('aura-focus-history') || '[]');
-            history.forEach(item => {
-                if (new Date(item.timestamp) >= startOfWeek) focusThisWeek++;
-            });
-        } catch {}
-
-        if (focusThisWeek === 0) {
-            (allTasks || tasks).forEach(t => {
-                if (t.focusSessions > 0 && t.completionDate) {
-                    if (new Date(t.completionDate) >= startOfWeek) focusThisWeek += t.focusSessions;
-                }
-            });
-        }
+        // Fix 2: use the React-managed focusHistory prop — no localStorage read needed
+        const focusThisWeek = focusHistory.filter(
+            item => item.timestamp && new Date(item.timestamp) >= startOfWeek
+        ).length;
 
         const streak = stats?.streak || 0;
 
@@ -92,7 +88,7 @@ export const FlowView = ({
             streak,
             focusSessions: focusThisWeek
         };
-    }, [allTasks, tasks, stats]);
+    }, [allTasks, tasks, focusHistory, stats]);
 
     // Monolith Task
     const monolithTask = monolithTaskId ? nonArchivedTasks.find(t => t.id === monolithTaskId) : null;
@@ -110,7 +106,8 @@ export const FlowView = ({
         ...Object.keys(allCategories).filter(c => !defaultCategories[c])
     ], [allCategories]);
     
-    const allTags = useMemo(() => [...new Set(tasks.flatMap(t => t.tags || []))], [tasks]);
+    // allTags is now received as a prop from App.jsx (computed via useFilteredTasks).
+    // The local useMemo has been removed to avoid computing the same value twice.
 
     const selectableTasksForMonolith = nonArchivedTasks.filter(t => !t.completed);
 
@@ -316,6 +313,7 @@ export const FlowView = ({
                         title="Pinned" 
                         icon={<PinIcon />} 
                         tasks={pinnedTasks} 
+                        onMoveTaskToSection={moveTaskToSection}
                         onReorderTasks={onReorderSectionTasks}
                         {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                     />

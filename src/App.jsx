@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { UIProvider, useUI } from './context/UIContext';
+import { NotificationProvider, useNotification } from './context/NotificationContext';
 import { TaskProvider, useTasks } from './context/TaskContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { GroveProvider, useGrove } from './context/GroveContext';
@@ -21,6 +22,7 @@ import { getTodayDateString } from './utils/dateUtils';
 import { FlowView } from './components/views/FlowView';
 import SkipToContent from './components/common/SkipToContent';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
+import { ScreenReaderAnnouncer } from './components/common/ScreenReaderAnnouncer';
 
 const ConstellationsView = React.lazy(() => import('./components/views/ConstellationsView').then(m => ({ default: m.ConstellationsView })));
 const GroveView = React.lazy(() => import('./components/views/GroveView').then(m => ({ default: m.GroveView })));
@@ -43,12 +45,14 @@ const AuraAppContent = () => {
         setIsAmbientSoundOpen,
         setIsBrainSweepOpen,
         activeFilter, setActiveFilter,
-        assistantMessage, setAssistantMessage,
         setFocusTaskId,
         setDetailModal,
-        togglePin,
-        setToastMessage,
     } = useUI();
+
+    const {
+        assistantMessage, setAssistantMessage,
+        setToastMessage,
+    } = useNotification();
 
     const {
         allDataLoaded,
@@ -59,6 +63,7 @@ const AuraAppContent = () => {
         dailyQuote,
         addTask,
         toggleTask,
+        togglePin,
         deleteTask,
         forgiveTask,
         archiveTask,
@@ -81,7 +86,7 @@ const AuraAppContent = () => {
         tunnelVision, setTunnelVision,
     } = useSettings();
 
-    const { stats, grove, unlockedAchievements } = useGrove();
+    const { stats, grove, unlockedAchievements, focusHistory } = useGrove();
 
     // Keyboard shortcuts
     useKeyboardShortcuts({ setCurrentView, setIsBrainSweepOpen });
@@ -106,7 +111,11 @@ const AuraAppContent = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, [currentView]);
 
-    // Session Continuity: Welcome Back context on app reopen (>15 min)
+    // Session Continuity: Welcome Back context on app reopen (>15 min).
+    // aura-last-session-timestamp is intentionally written directly here rather
+    // than via usePreferences because it must be read and written in the same
+    // synchronous pass before any async work happens, and it only needs to
+    // fire once per mount (not reactively).
     const welcomeCheckedRef = useRef(false);
     useEffect(() => {
         if (!allDataLoaded || welcomeCheckedRef.current) return;
@@ -120,10 +129,7 @@ const AuraAppContent = () => {
                 const activeCount = tasks.filter(t => !t.completed && !t.isArchived).length;
                 const viewName = currentView.charAt(0).toUpperCase() + currentView.slice(1);
                 const timer = setTimeout(() => {
-                    setWelcomeBanner({
-                        viewName,
-                        activeCount
-                    });
+                    setWelcomeBanner({ viewName, activeCount });
                 }, 50);
                 const dismissTimer = setTimeout(() => setWelcomeBanner(null), 7050);
                 return () => {
@@ -204,6 +210,7 @@ const AuraAppContent = () => {
                     className="flex flex-col flex-grow main-container"
                 >
                     <SkipToContent targetId="main-content" />
+                    <ScreenReaderAnnouncer />
                     <main id="main-content" tabIndex="-1" className="flex-grow pt-8 pb-48 px-4 sm:px-6 lg:px-8 relative z-10 focus:outline-none">
                         {/* Session Continuity Welcome Back Banner */}
                         <WelcomeBanner
@@ -277,6 +284,8 @@ const AuraAppContent = () => {
                                             setTunnelVision={setTunnelVision}
                                             moveTaskToSection={moveTaskToSection}
                                             stats={stats}
+                                            focusHistory={focusHistory}
+                                            allTags={allTags}
                                         />
                                     )}
                                     {currentView === 'constellations' && (
@@ -315,6 +324,7 @@ const AuraAppContent = () => {
                                             achievements={unlockedAchievements}
                                             allCategories={allCategories}
                                             stats={stats}
+                                            focusHistory={focusHistory}
                                             onDeleteStale={deleteTask}
                                             onRecommitTask={handleRecommitStaleTask}
                                             onSnoozeTask={handleSnoozeStaleTask}
@@ -346,15 +356,17 @@ const AuraAppContent = () => {
 export default function App() {
     return (
         <UIProvider>
-            <ThemeProvider>
-                <SettingsProvider>
-                    <GroveProvider>
-                        <TaskProvider>
-                            <AuraAppContent />
-                        </TaskProvider>
-                    </GroveProvider>
-                </SettingsProvider>
-            </ThemeProvider>
+            <NotificationProvider>
+                <ThemeProvider>
+                    <SettingsProvider>
+                        <GroveProvider>
+                            <TaskProvider>
+                                <AuraAppContent />
+                            </TaskProvider>
+                        </GroveProvider>
+                    </SettingsProvider>
+                </ThemeProvider>
+            </NotificationProvider>
         </UIProvider>
     );
 }

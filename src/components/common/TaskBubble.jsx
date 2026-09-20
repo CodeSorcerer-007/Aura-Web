@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform } from 'framer-motion';
 import { defaultCategories } from '../../utils/constants';
 import { formatDate, isOverdue } from '../../utils/dateUtils';
 import { StardustBurst } from './StardustParticles';
+import { announceToScreenReader } from '../../hooks/useAuraAnnounce';
 import {
     CheckIcon,
     CalendarIcon,
@@ -27,6 +28,7 @@ export const TaskBubble = ({
     onOpenDetail,
     onTogglePin,
     onArchive,
+    onMoveTaskToSection,
     dragControls
 }) => {
     const [isBursting, setIsBursting] = useState(false);
@@ -58,6 +60,9 @@ export const TaskBubble = ({
 
         if (!task.completed) {
             setIsBursting(true);
+            announceToScreenReader(`Task completed: ${task.text}`);
+        } else {
+            announceToScreenReader(`Task marked incomplete: ${task.text}`);
         }
         onToggle(task.id);
     };
@@ -132,16 +137,41 @@ export const TaskBubble = ({
                 <StardustBurst active={isBursting} onComplete={() => setIsBursting(false)} />
 
                 <div className="flex items-start gap-2.5">
-                    {/* Drag Handle */}
+                    {/* Drag Handle & Accessible Keyboard Reorderer */}
                     <div
+                        draggable={!task.completed}
+                        onDragStart={(e) => {
+                            e.dataTransfer.setData('text/plain', task.id);
+                            e.dataTransfer.effectAllowed = 'move';
+                            try {
+                                announceToScreenReader(`Picked up task: ${task.text}`);
+                            } catch {}
+                        }}
                         onPointerDown={(e) => {
                             e.stopPropagation();
                             dragControls?.start(e);
                         }}
+                        onKeyDown={(e) => {
+                            if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
+                                e.preventDefault();
+                                const sectionOrder = ['morning', 'afternoon', 'evening'];
+                                const currentIdx = sectionOrder.indexOf(task.timeOfDay || 'morning');
+                                if (e.key === 'ArrowRight' && currentIdx < sectionOrder.length - 1) {
+                                    const nextSec = sectionOrder[currentIdx + 1];
+                                    onMoveTaskToSection?.(task.id, nextSec);
+                                    announceToScreenReader(`Moved "${task.text}" to ${nextSec}`);
+                                } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+                                    const prevSec = sectionOrder[currentIdx - 1];
+                                    onMoveTaskToSection?.(task.id, prevSec);
+                                    announceToScreenReader(`Moved "${task.text}" to ${prevSec}`);
+                                }
+                            }
+                        }}
+                        tabIndex={0}
                         style={{ touchAction: 'none' }}
-                        className="flex items-center text-[var(--color-text-primary)]/30 hover:text-[var(--color-text-primary)] cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0"
-                        title="Drag to reorder"
-                        aria-label="Reorder task"
+                        className="flex items-center text-[var(--color-text-primary)]/30 hover:text-[var(--color-text-primary)] cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-400"
+                        title="Drag to reorder, or press Alt+Arrow Left/Right to move between Morning/Afternoon/Evening"
+                        aria-label={`Drag handle for ${task.text}. Press Alt+Arrow Right or Left to move between time sections.`}
                     >
                         <GripVertical className="w-4 h-4 pointer-events-none" />
                     </div>
@@ -216,7 +246,13 @@ export const TaskBubble = ({
                                     isOverdue(task.deadline) && !task.completed ? 'text-rose-400 font-semibold' : 'text-[var(--color-text-primary)]/60'
                                 }`}>
                                     <CalendarIcon className="w-3.5 h-3.5" />
-                                    <span>{formatDate(task.deadline)}{task.recurring && ` (${task.recurring.type})`}</span>
+                                    <span>{formatDate(task.deadline)}</span>
+                                </div>
+                            )}
+                            {task.recurring && (
+                                <div className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-teal-500/15 border border-teal-400/30 text-teal-300 font-medium font-mono">
+                                    <span>🔁</span>
+                                    <span className="capitalize">{task.recurring.type}</span>
                                 </div>
                             )}
                             {task.focusSessions > 0 && (

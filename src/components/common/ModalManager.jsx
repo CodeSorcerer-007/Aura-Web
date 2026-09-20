@@ -2,6 +2,7 @@ import React, { lazy, Suspense, useMemo, useCallback, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 import { useUI } from '../../context/UIContext';
+import { useNotification } from '../../context/NotificationContext';
 import { useTasks } from '../../context/TaskContext';
 import { useSettings } from '../../context/SettingsContext';
 import { useGrove } from '../../context/GroveContext';
@@ -59,18 +60,21 @@ export const ModalManager = () => {
         isCommandPaletteOpen, setIsCommandPaletteOpen,
         isShortcutsOpen, setIsShortcutsOpen,
         detailModal, setDetailModal,
-        toastMessage, setToastMessage,
-        achievementToast, setAchievementToast,
-        winModalTaskId, setWinModalTaskId,
-        templateSuggestion, setTemplateSuggestion,
         focusTaskId, setFocusTaskId,
-        isPlanting,
         isAmbientSoundOpen, setIsAmbientSoundOpen,
         isBrainSweepOpen, setIsBrainSweepOpen,
         isHarvestCardOpen, setIsHarvestCardOpen,
         isOnboardingOpen, setIsOnboardingOpen,
         setCurrentView
     } = useUI();
+
+    const {
+        toastMessage, setToastMessage,
+        achievementToast, setAchievementToast,
+        winModalTaskId, setWinModalTaskId,
+        templateSuggestion, setTemplateSuggestion,
+        isPlanting,
+    } = useNotification();
 
     const {
         tasks,
@@ -333,12 +337,14 @@ export const ModalManager = () => {
             </AnimatePresence>
 
             {/* Ambient Sound */}
-            <LazyModal isOpen={isAmbientSoundOpen}>
-                <AmbientSoundModal
-                    isOpen={isAmbientSoundOpen}
-                    onClose={() => setIsAmbientSoundOpen(false)}
-                />
-            </LazyModal>
+            <AnimatePresence>
+                <LazyModal isOpen={isAmbientSoundOpen}>
+                    <AmbientSoundModal
+                        isOpen={isAmbientSoundOpen}
+                        onClose={() => setIsAmbientSoundOpen(false)}
+                    />
+                </LazyModal>
+            </AnimatePresence>
 
             {/* Brain Sweep */}
             <AnimatePresence>

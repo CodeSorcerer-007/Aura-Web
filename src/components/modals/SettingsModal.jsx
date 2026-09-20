@@ -8,7 +8,8 @@ import {
     UploadIcon,
     ArchiveIcon
 } from '../common/Icons';
-import { ShieldCheck, HardDrive, RotateCcw, Clock, Sparkles, Database } from 'lucide-react';
+import { ShieldCheck, HardDrive, RotateCcw, Clock, Sparkles } from 'lucide-react';
+import { DataVaultHealthWidget } from '../common/DataVaultHealthWidget';
 
 export const SettingsModal = ({
     isOpen,
@@ -38,26 +39,8 @@ export const SettingsModal = ({
     const [newCategoryName, setNewCategoryName] = useState('');
     const [showSnapshots, setShowSnapshots] = useState(false);
     const [showWhatsNew, setShowWhatsNew] = useState(false);
-    const [storageInfo, setStorageInfo] = useState({ usage: 'Local IndexedDB Active', quota: '', percent: 0 });
 
     const snapshots = getRollingSnapshots ? getRollingSnapshots() : [];
-
-    React.useEffect(() => {
-        if (typeof navigator !== 'undefined' && navigator.storage && navigator.storage.estimate) {
-            navigator.storage.estimate().then(estimate => {
-                if (estimate.usage !== undefined) {
-                    const usedMB = (estimate.usage / (1024 * 1024)).toFixed(2);
-                    const quotaMB = estimate.quota ? (estimate.quota / (1024 * 1024)).toFixed(0) : 'N/A';
-                    const pct = estimate.quota ? Math.min(100, Math.round((estimate.usage / estimate.quota) * 100)) : 1;
-                    setStorageInfo({
-                        usage: `${usedMB} MB`,
-                        quota: `${quotaMB} MB`,
-                        percent: pct
-                    });
-                }
-            }).catch(() => {});
-        }
-    }, []);
 
     if (!isOpen) return null;
     
@@ -93,7 +76,13 @@ export const SettingsModal = ({
                 className="w-full max-w-md bg-[var(--color-bg-secondary)] border border-[var(--color-border)] rounded-2xl p-6 overflow-y-auto max-h-[90vh]"
             >
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-xl font-bold text-[var(--color-text-primary)]">Settings</h2>
+                    <div className="flex items-center gap-3">
+                        <img src="/Aura_logo.png" alt="Aura" className="w-8 h-8 rounded-xl object-contain shadow-md border border-white/10" />
+                        <div>
+                            <h2 className="text-xl font-bold text-[var(--color-text-primary)] leading-tight">Settings</h2>
+                            <p className="text-[10px] text-[var(--color-text-secondary)] font-mono">Aura v1.2.0 • Offline Sanctuary</p>
+                        </div>
+                    </div>
                     <button onClick={onClose} className="text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]">
                         <XIcon className="w-6 h-6"/>
                     </button>
@@ -234,26 +223,8 @@ export const SettingsModal = ({
                             </span>
                         </div>
 
-                        {/* Storage Health Gauge */}
-                        <div className="p-2.5 rounded-lg bg-white/[0.02] border border-white/5 space-y-1.5">
-                            <div className="flex items-center justify-between text-[11px]">
-                                <span className="text-[var(--color-text-secondary)] flex items-center gap-1">
-                                    <Database className="w-3 h-3 text-emerald-400" />
-                                    <span>IndexedDB Footprint</span>
-                                </span>
-                                <span className="font-mono text-white/90">{storageInfo.usage} {storageInfo.quota ? `/ ${storageInfo.quota}` : ''}</span>
-                            </div>
-                            <div className="w-full bg-white/5 h-1.5 rounded-full overflow-hidden">
-                                <div 
-                                    className="bg-emerald-400 h-full rounded-full transition-all" 
-                                    style={{ width: `${Math.max(4, storageInfo.percent)}%` }} 
-                                />
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] text-white/40">
-                                <span>Zero External Telemetry</span>
-                                <span className="text-emerald-400/90 font-medium">Air-Gapped Validated</span>
-                            </div>
-                        </div>
+                        {/* Data Vault Health Widget */}
+                        <DataVaultHealthWidget snapshotsCount={snapshots.length} />
 
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-[var(--color-text-secondary)]">Rolling Snapshots</span>

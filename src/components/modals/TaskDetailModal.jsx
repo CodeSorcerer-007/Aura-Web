@@ -16,10 +16,11 @@ export const TaskDetailModal = ({
     onAddVoiceNote,
     onDeleteVoiceNote
 }) => {
-    const [text, setText] = useState('');
-    const [notes, setNotes] = useState('');
-    const [tags, setTags] = useState('');
-    const [energy, setEnergy] = useState('flow');
+    const [text, setText] = useState(task?.text || '');
+    const [notes, setNotes] = useState(task?.notes || '');
+    const [tags, setTags] = useState((task?.tags || []).join(', '));
+    const [energy, setEnergy] = useState(task?.energy || 'flow');
+    const [recurringType, setRecurringType] = useState(task?.recurring?.type || 'none');
     const [isDependencyModalOpen, setIsDependencyModalOpen] = useState(false);
     const [attachmentURLs, setAttachmentURLs] = useState({});
     const [voiceURLs, setVoiceURLs] = useState({});
@@ -41,38 +42,48 @@ export const TaskDetailModal = ({
         setNotes(task.notes || '');
         setTags((task.tags || []).join(', '));
         setEnergy(task.energy || 'flow');
+        setRecurringType(task.recurring?.type || 'none');
     }
 
     useEffect(() => {
-        if (task) {
-            // Create Object URLs for attachments
-            const fileUrls = {};
-            const attachmentPromises = (task.attachments || []).map(async (att) => {
-                const fileBlob = await getFile(att.id);
-                if (fileBlob) {
-                    fileUrls[att.id] = URL.createObjectURL(fileBlob);
-                }
-            });
+        if (!task) return;
+        const hasAttachments = Boolean(task.attachments?.length);
+        const hasVoiceNotes = Boolean(task.voiceNotes?.length);
+        if (!hasAttachments && !hasVoiceNotes) {
+            setAttachmentURLs({});
+            setVoiceURLs({});
+            return;
+        }
 
-            // Create Object URLs for voice notes
-            const vUrls = {};
-            const voicePromises = (task.voiceNotes || []).map(async (vn) => {
-                const voiceBlob = await getFile(vn.id);
-                if (voiceBlob) {
-                    vUrls[vn.id] = URL.createObjectURL(voiceBlob);
-                }
-            });
+        let isCancelled = false;
+        const fileUrls = {};
+        const attachmentPromises = (task.attachments || []).map(async (att) => {
+            const fileBlob = await getFile(att.id);
+            if (fileBlob && !isCancelled) {
+                fileUrls[att.id] = URL.createObjectURL(fileBlob);
+            }
+        });
 
-            Promise.all([...attachmentPromises, ...voicePromises]).then(() => {
+        const vUrls = {};
+        const voicePromises = (task.voiceNotes || []).map(async (vn) => {
+            const voiceBlob = await getFile(vn.id);
+            if (voiceBlob && !isCancelled) {
+                vUrls[vn.id] = URL.createObjectURL(voiceBlob);
+            }
+        });
+
+        Promise.all([...attachmentPromises, ...voicePromises]).then(() => {
+            if (!isCancelled) {
                 setAttachmentURLs(fileUrls);
                 setVoiceURLs(vUrls);
-            });
+            }
+        });
 
-            return () => {
-                Object.values(fileUrls).forEach(URL.revokeObjectURL);
-                Object.values(vUrls).forEach(URL.revokeObjectURL);
-            };
-        }
+        return () => {
+            isCancelled = true;
+            Object.values(fileUrls).forEach(URL.revokeObjectURL);
+            Object.values(vUrls).forEach(URL.revokeObjectURL);
+        };
     }, [task]);
 
     // Clean up active recorder on unmount
@@ -89,7 +100,8 @@ export const TaskDetailModal = ({
 
     const handleSave = () => {
         const newTags = tags.split(',').map(t => t.trim()).filter(Boolean);
-        onSave(task.id, text, notes, newTags, energy);
+        const newRecurring = recurringType === 'none' ? null : { type: recurringType };
+        onSave(task.id, text, notes, newTags, energy, newRecurring);
         onClose();
     };
 
@@ -237,6 +249,38 @@ export const TaskDetailModal = ({
                                 <span>🍵</span>
                                 <span>Gentle Rest</span>
                             </button>
+                        </div>
+                    </div>
+
+                    {/* Recurring Cadence Selector */}
+                    <div className="mb-4">
+                        <label className="text-xs font-semibold text-[var(--color-text-secondary)] uppercase tracking-wider block mb-2 flex items-center justify-between">
+                            <span>🔁 Recurrence Schedule</span>
+                            {recurringType !== 'none' && (
+                                <span className="text-[10px] text-teal-400 font-mono font-normal">Every {recurringType}</span>
+                            )}
+                        </label>
+                        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
+                            {[
+                                { id: 'none', label: 'None', icon: '✕' },
+                                { id: 'daily', label: 'Daily', icon: '☀️' },
+                                { id: 'weekdays', label: 'Weekdays', icon: '💼' },
+                                { id: 'weekly', label: 'Weekly', icon: '🗓️' },
+                            ].map(cadence => (
+                                <button
+                                    key={cadence.id}
+                                    type="button"
+                                    onClick={() => setRecurringType(cadence.id)}
+                                    className={`py-2 px-1.5 sm:px-2 rounded-xl border text-xs font-medium transition-all flex flex-col sm:flex-row items-center justify-center gap-1 ${
+                                        recurringType === cadence.id
+                                            ? 'bg-teal-500/20 text-teal-200 border-teal-400/60 shadow-sm ring-1 ring-teal-400/40 font-semibold'
+                                            : 'bg-[var(--color-bg)] text-[var(--color-text-secondary)] border-[var(--color-border)] hover:text-[var(--color-text-primary)] hover:border-white/20'
+                                    }`}
+                                >
+                                    <span>{cadence.icon}</span>
+                                    <span>{cadence.label}</span>
+                                </button>
+                            ))}
                         </div>
                     </div>
 

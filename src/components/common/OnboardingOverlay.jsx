@@ -110,23 +110,29 @@ export const OnboardingOverlay = ({ isOpen, onClose, onComplete }) => {
                     <XIcon className="w-4 h-4" />
                 </button>
 
-                {/* Step indicator dots */}
-                <div className="flex items-center gap-1.5 mb-6" aria-label={`Step ${currentStep + 1} of ${ONBOARDING_STEPS.length}`}>
-                    {ONBOARDING_STEPS.map((_, idx) => (
-                        <div
-                            key={idx}
-                            className={`h-1.5 rounded-full transition-all duration-300 ${
-                                idx === currentStep
-                                    ? 'w-6 bg-[var(--color-accent)] shadow-[0_0_8px_var(--color-accent)]'
-                                    : idx < currentStep
-                                    ? 'w-2.5 bg-white/40'
-                                    : 'w-2 bg-white/15'
-                            }`}
-                        />
-                    ))}
-                    <span className="text-[11px] font-mono text-[var(--color-text-secondary)] ml-2">
-                        {currentStep + 1} of {ONBOARDING_STEPS.length}
-                    </span>
+                {/* Header with Aura logo and step indicator dots */}
+                <div className="flex items-center justify-between mb-6 pr-8">
+                    <div className="flex items-center gap-2">
+                        <img src="/Aura_logo.png" alt="Aura" className="w-6 h-6 rounded-lg object-contain shadow-sm border border-white/10" />
+                        <span className="text-xs font-semibold text-[var(--color-text-primary)] tracking-wide">Aura Tour</span>
+                    </div>
+                    <div className="flex items-center gap-1.5" aria-label={`Step ${currentStep + 1} of ${ONBOARDING_STEPS.length}`}>
+                        {ONBOARDING_STEPS.map((_, idx) => (
+                            <div
+                                key={idx}
+                                className={`h-1.5 rounded-full transition-all duration-300 ${
+                                    idx === currentStep
+                                        ? 'w-6 bg-[var(--color-accent)] shadow-[0_0_8px_var(--color-accent)]'
+                                        : idx < currentStep
+                                        ? 'w-2.5 bg-white/40'
+                                        : 'w-2 bg-white/15'
+                                }`}
+                            />
+                        ))}
+                        <span className="text-[11px] font-mono text-[var(--color-text-secondary)] ml-2">
+                            {currentStep + 1} of {ONBOARDING_STEPS.length}
+                        </span>
+                    </div>
                 </div>
 
                 {/* Animated Step Content */}

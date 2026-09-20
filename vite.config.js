@@ -27,13 +27,20 @@ function auraOfflineServiceWorkerPlugin() {
         '/',
         '/index.html',
         '/manifest.json',
+        '/Aura_logo.png',
+        '/favicon.png',
+        '/favicon-32x32.png',
+        '/favicon-16x16.png',
+        '/favicon.ico',
         '/favicon.svg',
+        '/icon-192.png',
         '/icon-192.svg',
+        '/icon-512.png',
         '/icon-512.svg',
         ...assetFiles
       ];
 
-      const cacheVersion = `aura-offline-v6-${Date.now()}`;
+      const cacheVersion = `aura-offline-v7-${Date.now()}`;
       let swContent = fs.readFileSync(swSourceFile, 'utf-8');
 
       // Replace cache name and static assets
@@ -62,6 +69,12 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './tests/setup.js',
+    // The worker process needs extra heap because 23 jsdom environments are
+    // created across the test suite.  forkOptions passes Node flags directly
+    // to each worker child process.
+    forkOptions: {
+      execArgv: ['--max-old-space-size=4096'],
+    },
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html']

@@ -24,7 +24,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
         if (!text.trim()) return null;
         const catMatch = text.match(/#([a-zA-Z0-9_-]+)/);
         const tagsMatches = [...text.matchAll(/(?:^|\s)@([a-zA-Z0-9_-]+)/g)].map(m => m[1]);
-        const isUrgent = text.toLowerCase().includes('!urgent') || text.toLowerCase().includes('!high');
+        const isUrgent = text.toLowerCase().includes('!urgent') || text.toLowerCase().includes('!high') || /(?:^|\s)!(?!\w)/.test(text);
         const energyMatch = text.match(/~(spark|flow|rest)/i) || (selectedEnergy ? [null, selectedEnergy] : null);
         const hasTomorrow = /\btomorrow\b/i.test(text);
         const hasToday = /\btoday\b/i.test(text);

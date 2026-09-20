@@ -30,7 +30,7 @@ export interface VoiceNote {
 }
 
 export interface RecurringRule {
-  type: 'daily' | 'weekly' | 'monthly';
+  type: 'daily' | 'weekdays' | 'weekly' | 'monthly';
 }
 
 export interface AuraTask {
@@ -102,3 +102,39 @@ export interface CustomTheme {
   textSecondary: string;
   accent: string;
 }
+
+export type ActiveView = 'flow' | 'review' | 'grove' | 'journal' | 'constellations';
+
+export type SoundscapeType = 'rain' | 'waves' | 'forest' | 'whitenoise' | 'campfire' | 'meadow';
+
+export type SoundPreset = 
+  | 'deep_focus' 
+  | 'tranquil_rain' 
+  | 'ocean_breeze' 
+  | 'forest_whisper' 
+  | 'cozy_evening' 
+  | 'night_meadow';
+
+export type IntervalBellDuration = 0 | 5 | 10 | 15 | 20 | 30;
+
+export interface AmbientSoundState {
+  playing: Record<SoundscapeType, boolean>;
+  volumes: Record<SoundscapeType, number>;
+  masterVolume: number;
+  intervalBell: IntervalBellDuration;
+  activePreset: SoundPreset | null;
+}
+
+export interface AuraAnnouncePayload {
+  message: string;
+  mode?: 'polite' | 'assertive';
+}
+
+export interface DataVaultIntegrity {
+  usageMB: string;
+  quotaMB: string;
+  percent: number;
+  isPersisted: boolean;
+  snapshotsCount: number;
+}
+

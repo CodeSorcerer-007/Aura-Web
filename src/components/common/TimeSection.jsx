@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence, Reorder, useDragControls } from 'framer-motion';
 import { TaskBubble } from './TaskBubble';
+import { announceToScreenReader } from '../../hooks/useAuraAnnounce';
 
 const ReorderTaskWrapper = ({
     task,
@@ -12,7 +13,8 @@ const ReorderTaskWrapper = ({
     isDependencyMet,
     onOpenDetail,
     onTogglePin,
-    onArchive
+    onArchive,
+    onMoveTaskToSection
 }) => {
     const dragControls = useDragControls();
 
@@ -36,6 +38,7 @@ const ReorderTaskWrapper = ({
                 onOpenDetail={onOpenDetail}
                 onTogglePin={onTogglePin}
                 onArchive={onArchive}
+                onMoveTaskToSection={onMoveTaskToSection}
                 dragControls={dragControls}
             />
         </Reorder.Item>
@@ -86,6 +89,9 @@ export const TimeSection = ({
         const taskId = e.dataTransfer.getData('text/plain');
         if (taskId && onMoveTaskToSection) {
             onMoveTaskToSection(taskId, sectionKey);
+            try {
+                announceToScreenReader(`Task moved into ${title} section`);
+            } catch {}
         }
     };
 
@@ -152,6 +158,7 @@ export const TimeSection = ({
                                     onOpenDetail={onOpenDetail}
                                     onTogglePin={onTogglePin}
                                     onArchive={onArchive}
+                                    onMoveTaskToSection={onMoveTaskToSection}
                                 />
                             );
                         })}
@@ -174,6 +181,7 @@ export const TimeSection = ({
                                     onOpenDetail={onOpenDetail}
                                     onTogglePin={onTogglePin}
                                     onArchive={onArchive}
+                                    onMoveTaskToSection={onMoveTaskToSection}
                                 />
                             );
                         })}

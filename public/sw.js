@@ -1,10 +1,17 @@
-const CACHE_NAME = 'aura-offline-v6';
+const CACHE_NAME = 'aura-offline-v7';
 const STATIC_ASSETS = [
     '/',
     '/index.html',
     '/manifest.json',
+    '/Aura_logo.png',
+    '/favicon.png',
+    '/favicon-32x32.png',
+    '/favicon-16x16.png',
+    '/favicon.ico',
     '/favicon.svg',
+    '/icon-192.png',
     '/icon-192.svg',
+    '/icon-512.png',
     '/icon-512.svg'
 ];
 

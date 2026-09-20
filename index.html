@@ -2,11 +2,14 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" href="/icon-192.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.json" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#000000" />
+    <meta name="theme-color" content="#000000" id="meta-theme-color" />
     <meta name="color-scheme" content="dark light" />
     <meta name="description" content="Aura — Mindful Productivity & Task Flow companion featuring visual time blocking, generative ambient soundscapes, and personal grove." />
     <meta name="robots" content="index, follow" />
@@ -15,12 +18,12 @@
     <meta property="og:url" content="https://aura.local/" />
     <meta property="og:title" content="Aura — Mindful Productivity & Ambient Flow" />
     <meta property="og:description" content="Transform your focus with mindful time-blocking, ambient soundscapes, and a living digital grove." />
-    <meta property="og:image" content="/icon-512.svg" />
+    <meta property="og:image" content="/Aura_logo.png" />
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Aura — Mindful Productivity & Ambient Flow" />
     <meta name="twitter:description" content="Transform your focus with mindful time-blocking, ambient soundscapes, and a living digital grove." />
-    <meta name="twitter:image" content="/icon-512.svg" />
+    <meta name="twitter:image" content="/Aura_logo.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Aura" />
@@ -32,7 +35,20 @@
       "@type": "WebApplication",
       "name": "Aura",
       "applicationCategory": "ProductivityApplication",
-      "operatingSystem": "All",
+      "applicationSubCategory": "Mindful Task Management & Flow",
+      "operatingSystem": "All Platforms (Desktop, Mobile, PWA)",
+      "softwareVersion": "1.2.0",
+      "browserRequirements": "Requires JavaScript. Works 100% offline via Service Worker & IndexedDB.",
+      "featureList": [
+        "Visual Day & Time Blocking (Morning, Afternoon, Evening)",
+        "Single Sacred MIT Goal with Tunnel Vision Mode",
+        "Zero-Asset Procedural Audio Synthesizer (Atmospheres & Frequencies)",
+        "Living Botanical Sanctuary Gamification (The Grove)",
+        "Cosmic Constellations Orbital Task Physics Visualizer",
+        "Full 53-Week Productivity Heatmap & GitHub-style Analytics",
+        "Air-Gapped Absolute Zero-Network Privacy Architecture",
+        "18 Handcrafted Themes with Per-Theme Particle & Ambient Backgrounds"
+      ],
       "offers": {
         "@type": "Offer",
         "price": "0",
@@ -43,6 +59,13 @@
     </script>
   </head>
   <body>
+    <noscript>
+      <div style="font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: #f9fafb; text-align: center; padding: 2rem;">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🌸</div>
+        <h1 style="font-size: 1.75rem; font-weight: bold; margin-bottom: 0.5rem;">Aura Mindful Productivity</h1>
+        <p style="color: #9ca3af; max-width: 420px; line-height: 1.6;">Aura requires JavaScript to generate its procedural ambient soundscapes, botanical growth simulations, and offline local vault. Please enable JavaScript to begin your flow.</p>
+      </div>
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

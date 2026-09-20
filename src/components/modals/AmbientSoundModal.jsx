@@ -13,7 +13,9 @@ import {
     Bell,
     Radio,
     Sliders,
-    Music2
+    Music2,
+    Flame,
+    Sun
 } from 'lucide-react';
 
 const ICON_MAP = {
@@ -25,7 +27,9 @@ const ICON_MAP = {
     Volume2,
     VolumeX,
     Bell,
-    Radio
+    Radio,
+    Flame,
+    Sun
 };
 
 export const AmbientSoundModal = ({ isOpen, onClose }) => {
@@ -51,7 +55,11 @@ export const AmbientSoundModal = ({ isOpen, onClose }) => {
         sleepTimer,
         setSleepTimer,
         sleepTimerOptions,
-        formattedSleepTime
+        formattedSleepTime,
+        intervalBell,
+        setIntervalBell,
+        intervalBellOptions,
+        triggerPreviewChime
     } = useAmbientSound(true);
 
     if (!isOpen) return null;
@@ -312,6 +320,40 @@ export const AmbientSoundModal = ({ isOpen, onClose }) => {
                                         className={`flex-1 py-1 text-xs rounded-xl transition-all cursor-pointer ${
                                             sleepTimer === opt.id
                                                 ? 'bg-purple-600 text-white font-medium shadow-sm'
+                                                : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
+                                        }`}
+                                    >
+                                        {opt.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Mindfulness Interval Bell */}
+                        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 mt-2">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-semibold text-amber-200 flex items-center gap-1.5">
+                                    <Bell className="w-3.5 h-3.5 text-amber-400" />
+                                    Mindfulness Interval Bell
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={triggerPreviewChime}
+                                    className="text-[10px] px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-200 hover:bg-amber-400/30 border border-amber-400/30 font-medium transition-colors cursor-pointer"
+                                    title="Preview singing bowl overtone"
+                                >
+                                    🔔 Test Bell
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-center gap-1.5">
+                                {(intervalBellOptions || []).map((opt) => (
+                                    <button
+                                        key={opt.id}
+                                        type="button"
+                                        onClick={() => setIntervalBell(opt.id)}
+                                        className={`flex-1 py-1 text-xs rounded-xl transition-all cursor-pointer ${
+                                            intervalBell === opt.id
+                                                ? 'bg-amber-400 text-black font-semibold shadow-sm'
                                                 : 'bg-white/5 text-white/60 hover:text-white hover:bg-white/10'
                                         }`}
                                     >

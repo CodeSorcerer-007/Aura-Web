@@ -43,7 +43,9 @@ export const ProductivityHeatmap = ({ completedTasks = [], streak = 0 }) => {
         if (scrollContainerRef.current && selectedYear === currentYear) {
             const currentMonth = today.getMonth();
             const scrollTarget = Math.max(0, (currentMonth / 12) * 730 - 60);
-            scrollContainerRef.current.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+            if (typeof scrollContainerRef.current.scrollTo === 'function') {
+                scrollContainerRef.current.scrollTo({ left: scrollTarget, behavior: 'smooth' });
+            }
         }
     }, [selectedYear, currentYear, today]);
 

@@ -11,6 +11,8 @@ export const ATMOSPHERE_OPTIONS = [
     { id: 'rain', label: 'Rain', icon: 'CloudRain' },
     { id: 'ocean', label: 'Ocean Waves', icon: 'Waves' },
     { id: 'wind', label: 'Forest Wind', icon: 'Wind' },
+    { id: 'campfire', label: 'Hearth Campfire', icon: 'Flame' },
+    { id: 'meadow', label: 'Summer Meadow', icon: 'Sun' },
     { id: 'brown', label: 'Brown Noise', icon: 'Volume2' },
     { id: 'pink', label: 'Pink Noise', icon: 'Volume2' },
     { id: 'white', label: 'White Noise', icon: 'Volume2' },
@@ -29,6 +31,8 @@ export const SOUND_PRESETS = [
     { id: 'deep_focus', name: 'Deep Focus', atmosphere: 'rain', frequency: 'solfeggio_432' },
     { id: 'ocean_theta', name: 'Ocean Theta', atmosphere: 'ocean', frequency: 'waves_theta' },
     { id: 'forest_zen', name: 'Forest Zen', atmosphere: 'wind', frequency: 'chimes_procedural' },
+    { id: 'cozy_evening', name: 'Cozy Hearth', atmosphere: 'campfire', frequency: 'waves_alpha' },
+    { id: 'night_meadow', name: 'Starlight Meadow', atmosphere: 'meadow', frequency: 'solfeggio_432' },
     { id: 'transformation', name: '528 Hz Renewal', atmosphere: 'off', frequency: 'solfeggio_528' },
 ];
 
@@ -37,6 +41,14 @@ export const SLEEP_TIMER_OPTIONS = [
     { id: 15, label: '15m' },
     { id: 25, label: '25m' },
     { id: 50, label: '50m' },
+    { id: 60, label: '60m' }
+];
+
+export const INTERVAL_BELL_OPTIONS = [
+    { id: 'off', label: 'Off' },
+    { id: 15, label: '15m' },
+    { id: 20, label: '20m' },
+    { id: 30, label: '30m' },
     { id: 60, label: '60m' }
 ];
 
@@ -67,6 +79,7 @@ let sharedState = {
     frequencyVolume: 0.7,
     sleepTimer: 'off',
     sleepSecondsLeft: 0,
+    intervalBell: 'off',
     isSuspended: false,
 };
 
@@ -227,15 +240,55 @@ const rebuildAtmosphere = () => {
             lfo.connect(filter.frequency);
             noise.connect(filter);
             filter.connect(dest);
+        } else if (type === 'campfire') {
+            const baseNoise = new Tone.Noise('brown');
+            const baseFilter = new Tone.Filter({ type: 'lowpass', frequency: 280, rolloff: -12 });
+            baseNoise.volume.value = -8;
+            baseNoise.connect(baseFilter);
+            baseFilter.connect(dest);
+
+            const crackleNoise = new Tone.Noise('pink');
+            const crackleFilter = new Tone.Filter({ type: 'highpass', frequency: 1200 });
+            const crackleGain = new Tone.Gain(0.08);
+            crackleNoise.connect(crackleFilter);
+            crackleFilter.connect(crackleGain);
+            crackleGain.connect(dest);
+
+            const crackleLfo = new Tone.LFO({ frequency: 4.5, min: 0.01, max: 0.25 });
+            crackleLfo.connect(crackleGain.gain);
+
             atmosphereNodes = {
-                start: () => { noise.start(); lfo.start(); },
-                stop: () => { noise.stop(); lfo.stop(); },
-                dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); }
+                start: () => { baseNoise.start(); crackleNoise.start(); crackleLfo.start(); },
+                stop: () => { baseNoise.stop(); crackleNoise.stop(); crackleLfo.stop(); },
+                dispose: () => { baseNoise.dispose(); baseFilter.dispose(); crackleNoise.dispose(); crackleFilter.dispose(); crackleGain.dispose(); crackleLfo.dispose(); }
+            };
+        } else if (type === 'meadow') {
+            const bgNoise = new Tone.Noise('pink');
+            const bgFilter = new Tone.Filter({ type: 'bandpass', frequency: 450, Q: 3 });
+            bgNoise.volume.value = -18;
+            bgNoise.connect(bgFilter);
+            bgFilter.connect(dest);
+
+            const chirpCarrier = new Tone.Oscillator(4600, 'sine');
+            const chirpGain = new Tone.Gain(0.04);
+            const chirpLfo = new Tone.LFO({ frequency: 14, min: 0.001, max: 0.08 });
+            chirpCarrier.connect(chirpGain);
+            chirpLfo.connect(chirpGain.gain);
+            chirpGain.connect(dest);
+
+            atmosphereNodes = {
+                start: () => { bgNoise.start(); chirpCarrier.start(); chirpLfo.start(); },
+                stop: () => { bgNoise.stop(); chirpCarrier.stop(); chirpLfo.stop(); },
+                dispose: () => { bgNoise.dispose(); bgFilter.dispose(); chirpCarrier.dispose(); chirpGain.dispose(); chirpLfo.dispose(); }
             };
         }
 
         if (atmosphereNodes) {
             atmosphereNodes.start?.();
+            // Smooth gain crossfade ramp to avoid audible pop
+            try {
+                dest.gain.rampTo(sharedState.atmosphereVolume, 0.35);
+            } catch {}
             const isSusp = getIsContextSuspended();
             sharedState.isSuspended = isSusp;
             if (isSusp) {
@@ -329,6 +382,10 @@ const rebuildFrequency = () => {
 
         if (frequencyNodes) {
             frequencyNodes.start?.();
+            // Smooth gain crossfade ramp
+            try {
+                dest.gain.rampTo(sharedState.frequencyVolume, 0.35);
+            } catch {}
             const isSusp = getIsContextSuspended();
             sharedState.isSuspended = isSusp;
             if (isSusp) {
@@ -338,6 +395,25 @@ const rebuildFrequency = () => {
     } catch (err) {
         console.error('Frequency synthesis error:', err);
     }
+};
+
+let intervalBellTimer = null;
+const updateIntervalBell = (val) => {
+    if (intervalBellTimer) {
+        clearInterval(intervalBellTimer);
+        intervalBellTimer = null;
+    }
+    sharedState.intervalBell = val;
+
+    if (val !== 'off') {
+        const intervalMs = Number(val) * 60 * 1000;
+        intervalBellTimer = setInterval(() => {
+            try {
+                playTibetanBowl(216, 4.2);
+            } catch {}
+        }, intervalMs);
+    }
+    notifySubscribers();
 };
 
 const updateSleepTimer = (val) => {
@@ -495,6 +571,10 @@ export const useAmbientSound = (_isActive = true) => {
         setSleepTimer: updateSleepTimer,
         sleepTimerOptions: SLEEP_TIMER_OPTIONS,
         formattedSleepTime,
+        intervalBell: state.intervalBell,
+        setIntervalBell: updateIntervalBell,
+        intervalBellOptions: INTERVAL_BELL_OPTIONS,
+        triggerPreviewChime: () => playTibetanBowl(216, 4.0),
         // Backward compatibility
         soundType,
         setSoundType,

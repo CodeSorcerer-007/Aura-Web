@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { getTodayDateString } from '../utils/dateUtils';
 import { getShutdownRitualMessages } from '../utils/constants';
 import { getAllStoredAttachments, putAllAttachments } from '../utils/db';
+import { usePreferences } from './usePreferences';
 
 export const useRitualsAndNotifications = ({
     tasksCompletedToday,
@@ -29,7 +30,10 @@ export const useRitualsAndNotifications = ({
     setSoundEffectsEnabled,
     autoArchiveEnabled,
     setAutoArchiveEnabled,
-    ui
+    // Fix 2: import/export now round-trips focusHistory through React state
+    focusHistory,
+    setFocusHistory,
+    notification
 }) => {
     const [shutdownRitual, setShutdownRitual] = useState({ active: false, step: 0 });
 
@@ -45,14 +49,14 @@ export const useRitualsAndNotifications = ({
         if (enabled && 'Notification' in window && Notification.permission !== 'granted') {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                ui.setToastMessage({ type: 'success', text: 'Notifications enabled!' });
+                notification.setToastMessage({ type: 'success', text: 'Notifications enabled!' });
                 setNotificationsEnabled(true);
             } else {
-                ui.setToastMessage({ type: 'error', text: 'Notifications were denied.' });
+                notification.setToastMessage({ type: 'error', text: 'Notifications were denied.' });
                 setNotificationsEnabled(false);
             }
         }
-    }, [setNotificationsEnabled, ui]);
+    }, [setNotificationsEnabled, notification]);
 
     // Shutdown Ritual Messages & Assistant Prompts
     const shutdownRitualMessages = useMemo(
@@ -60,13 +64,11 @@ export const useRitualsAndNotifications = ({
         [tasksCompletedToday]
     );
 
-    const [lastShutdownNotifiedDate, setLastShutdownNotifiedDate] = useState(() => {
-        try {
-            return localStorage.getItem('aura_last_shutdown_reminder_date') || '';
-        } catch {
-            return '';
-        }
-    });
+    // lastShutdownNotifiedDate — persisted via usePreferences so it follows the
+    // same consistent storage pattern as every other setting in the app.
+    const [lastShutdownNotifiedDate, setLastShutdownNotifiedDate] = usePreferences(
+        'aura-last-shutdown-notified-date', ''
+    );
 
     // Web Push Evening Shutdown Reminder Scheduler
     useEffect(() => {
@@ -82,16 +84,12 @@ export const useRitualsAndNotifications = ({
             // Compare currentTime with configured shutdownTime (e.g. "21:00")
             if (currentTimeStr === shutdownTime && lastShutdownNotifiedDate !== todayDate) {
                 setLastShutdownNotifiedDate(todayDate);
-                try {
-                    localStorage.setItem('aura_last_shutdown_reminder_date', todayDate);
-                } catch {}
-
                 // 1. Trigger Web Push / Native browser notification
                 if (notificationsEnabled && 'Notification' in window && Notification.permission === 'granted') {
                     try {
                         new Notification("Aura — Evening Wind Down 🌙", {
                             body: `It's ${shutdownTime}. Time to wrap up your focus, reflect on your accomplishments, and begin your evening shutdown ritual.`,
-                            icon: "/favicon.ico",
+                            icon: "/icon-192.png",
                             tag: "aura-shutdown-reminder"
                         });
                     } catch (e) {
@@ -99,9 +97,9 @@ export const useRitualsAndNotifications = ({
                     }
                 }
 
-                // 2. Activate shutdown ritual in UI with tranquil assistant prompt
+                // 2. Activate shutdown ritual in notification with tranquil assistant prompt
                 setShutdownRitual({ active: true, step: 0 });
-                ui.setToastMessage?.({
+                notification.setToastMessage?.({
                     type: 'info',
                     text: `Evening shutdown time (${shutdownTime}) reached. Time to wind down 🌙`
                 });
@@ -112,7 +110,7 @@ export const useRitualsAndNotifications = ({
         checkShutdownTime();
 
         return () => clearInterval(interval);
-    }, [shutdownTime, notificationsEnabled, lastShutdownNotifiedDate, ui]);
+    }, [shutdownTime, notificationsEnabled, lastShutdownNotifiedDate, notification, setLastShutdownNotifiedDate]);
 
     // Test shutdown notification on demand
     const testShutdownReminder = useCallback(async () => {
@@ -120,30 +118,30 @@ export const useRitualsAndNotifications = ({
             if (Notification.permission !== 'granted') {
                 const perm = await Notification.requestPermission();
                 if (perm !== 'granted') {
-                    ui.setToastMessage?.({ type: 'error', text: 'Browser notification permission denied.' });
+                    notification.setToastMessage?.({ type: 'error', text: 'Browser notification permission denied.' });
                     return;
                 }
             }
             try {
                 new Notification("Aura — Evening Wind Down 🌙", {
                     body: `It's ${shutdownTime}. Time to wrap up your focus, reflect on your accomplishments, and begin your evening shutdown ritual.`,
-                    icon: "/favicon.ico"
+                    icon: "/icon-192.png"
                 });
             } catch (e) {
                 console.warn(e);
             }
         }
         setShutdownRitual({ active: true, step: 0 });
-        ui.setToastMessage?.({ type: 'success', text: 'Evening reminder triggered! Check your notification 🌙' });
-    }, [shutdownTime, ui]);
+        notification.setToastMessage?.({ type: 'success', text: 'Evening reminder triggered! Check your notification 🌙' });
+    }, [shutdownTime, notification]);
 
     useEffect(() => {
         if (shutdownRitual.active) {
-            ui.setAssistantMessage({ message: shutdownRitualMessages[shutdownRitual.step] });
-        } else if (!shutdownRitual.active && ui.assistantMessage?.message?.startsWith("Let's wind down")) {
-            ui.setAssistantMessage(null);
+            notification.setAssistantMessage({ message: shutdownRitualMessages[shutdownRitual.step] });
+        } else if (!shutdownRitual.active && notification.assistantMessage?.message?.startsWith("Let's wind down")) {
+            notification.setAssistantMessage(null);
         }
-    }, [shutdownRitual, shutdownRitualMessages, ui]);
+    }, [shutdownRitual, shutdownRitualMessages, notification]);
 
     // Export Handler with Lossless Attachments
     const handleExport = useCallback(async () => {
@@ -163,6 +161,7 @@ export const useRitualsAndNotifications = ({
             customCategories,
             hasLaunched,
             journalEntries,
+            focusHistory,
             shutdownTime,
             soundEffectsEnabled,
             autoArchiveEnabled,
@@ -177,7 +176,7 @@ export const useRitualsAndNotifications = ({
         link.download = `aura-backup-${getTodayDateString()}.json`;
         link.click();
         URL.revokeObjectURL(url);
-        ui.setToastMessage({ type: 'success', text: 'Lossless backup exported successfully!' });
+        notification.setToastMessage({ type: 'success', text: 'Lossless backup exported successfully!' });
     }, [
         tasks,
         templates,
@@ -187,11 +186,12 @@ export const useRitualsAndNotifications = ({
         customCategories,
         hasLaunched,
         journalEntries,
+        focusHistory,
         shutdownTime,
         soundEffectsEnabled,
         autoArchiveEnabled,
         notificationsEnabled,
-        ui
+        notification
     ]);
 
     // Import Handler with Lossless Attachments Rehydration
@@ -211,6 +211,7 @@ export const useRitualsAndNotifications = ({
                 if (data.customCategories) setCustomCategories(data.customCategories);
                 if (data.hasLaunched !== undefined) setHasLaunched(data.hasLaunched);
                 if (data.journalEntries) setJournalEntries(data.journalEntries);
+                if (Array.isArray(data.focusHistory)) setFocusHistory(data.focusHistory);
                 if (data.shutdownTime) setShutdownTime(data.shutdownTime);
                 if (data.soundEffectsEnabled !== undefined) setSoundEffectsEnabled(data.soundEffectsEnabled);
                 if (data.autoArchiveEnabled !== undefined) setAutoArchiveEnabled(data.autoArchiveEnabled);
@@ -225,10 +226,10 @@ export const useRitualsAndNotifications = ({
                     }
                 }
 
-                ui.setToastMessage({ type: 'success', text: 'Data & attachments restored successfully!' });
+                notification.setToastMessage({ type: 'success', text: 'Data & attachments restored successfully!' });
             } catch (error) {
                 console.error("Error parsing import file:", error);
-                ui.setToastMessage({ type: 'error', text: 'Failed to import data. Invalid file format.' });
+                notification.setToastMessage({ type: 'error', text: 'Failed to import data. Invalid file format.' });
             }
         };
         reader.readAsText(file);
@@ -241,11 +242,12 @@ export const useRitualsAndNotifications = ({
         setCustomCategories,
         setHasLaunched,
         setJournalEntries,
+        setFocusHistory,
         setShutdownTime,
         setSoundEffectsEnabled,
         setAutoArchiveEnabled,
         setNotificationsEnabled,
-        ui
+        notification
     ]);
 
     return {

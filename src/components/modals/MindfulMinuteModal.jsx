@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { playHarmonicUiSound } from '../../hooks/useSoundEffects';
+import { usePreferences } from '../../hooks/usePreferences';
 
 const BREATH_PATTERNS = [
     {
@@ -41,13 +42,8 @@ export const MindfulMinuteModal = ({ isOpen, onClose }) => {
     const [selectedPatternId, setSelectedPatternId] = useState('box');
     const [phaseIndex, setPhaseIndex] = useState(0);
     const [completedCycles, setCompletedCycles] = useState(0);
-    const [totalSessions, setTotalSessions] = useState(() => {
-        try {
-            return parseInt(localStorage.getItem('aura-mindful-sessions') || '0', 10);
-        } catch {
-            return 0;
-        }
-    });
+    // Persisted via usePreferences — consistent with the rest of the app's storage pattern
+    const [totalSessions, setTotalSessions] = usePreferences('aura-mindful-sessions', 0);
 
     const activePattern = BREATH_PATTERNS.find(p => p.id === selectedPatternId) || BREATH_PATTERNS[0];
     const currentPhase = activePattern.phases[phaseIndex] || activePattern.phases[0];
@@ -84,11 +80,7 @@ export const MindfulMinuteModal = ({ isOpen, onClose }) => {
     const handleEndSession = () => {
         if (completedCycles > 0) {
             playHarmonicUiSound('complete');
-            try {
-                const updated = totalSessions + 1;
-                localStorage.setItem('aura-mindful-sessions', updated.toString());
-                setTotalSessions(updated);
-            } catch {}
+            setTotalSessions(prev => prev + 1);
         }
         if (onClose) onClose();
     };

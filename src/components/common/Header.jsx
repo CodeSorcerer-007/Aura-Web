@@ -126,9 +126,19 @@ export const Header = ({
             </button>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)] font-display">
-            <span className="aura-gradient-text">Aura</span>
-        </h1>
+        <div className="flex items-center justify-center gap-3 sm:gap-3.5 mb-1 select-none">
+            <div className="relative group">
+                <div className="absolute -inset-1 rounded-2xl bg-gradient-to-r from-amber-500/25 via-pink-500/25 to-purple-500/25 blur-md opacity-60 group-hover:opacity-100 transition duration-500 group-hover:scale-105 pointer-events-none" />
+                <img 
+                    src="/Aura_logo.png" 
+                    alt="Aura" 
+                    className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-2xl shadow-lg border border-white/10 object-contain transform transition duration-300 group-hover:scale-105" 
+                />
+            </div>
+            <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-[var(--color-text-primary)] font-display">
+                <span className="aura-gradient-text">Aura</span>
+            </h1>
+        </div>
         {dailyQuote && (
             <p className="text-[var(--color-text-secondary)] mb-4 mt-2 text-xs sm:text-sm italic max-w-md mx-auto line-clamp-2">
                 "{dailyQuote.quote}" <span className="not-italic text-[var(--color-text-secondary)]/70">— {dailyQuote.author}</span>

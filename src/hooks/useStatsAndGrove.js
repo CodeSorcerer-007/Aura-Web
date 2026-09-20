@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react';
+import { useEffect, useRef, useMemo, useCallback } from 'react';
 import { getTodayDateString } from '../utils/dateUtils';
 import { achievementsList } from '../utils/constants';
 
@@ -11,12 +11,18 @@ export const useStatsAndGrove = ({
     setUnlockedAchievements,
     grove,
     setGrove,
+    // Fix 2: receive focusHistory through props instead of reading localStorage directly
+    focusHistory,
+    setFocusHistory,
+    // Fix 8: receive momentumAwardedDate through props instead of reading localStorage directly
+    momentumAwardedDate,
+    setMomentumAwardedDate,
     allDataLoaded,
     autoArchiveEnabled,
     playSoundEffect,
     showNotification,
     toggleTask,
-    ui
+    notification
 }) => {
     // Auto Archive & Streak Updates on Day Change
     useEffect(() => {
@@ -50,18 +56,36 @@ export const useStatsAndGrove = ({
         }
     }, [allDataLoaded, tasks, stats.lastActiveDate, autoArchiveEnabled, setTasks, setStats]);
 
+    // Achievement toast auto-dismiss timer ref — tracked so we can clear it on
+    // unmount, preventing a "setState on unmounted component" leak if the hook
+    // tears down before the 4-second window expires.
+    const achievementTimerRef = useRef(null);
+
     // Check Achievements
     useEffect(() => {
         if (!allDataLoaded) return;
         for (const achievement of achievementsList) {
             if (!unlockedAchievements.includes(achievement.id) && achievement.check(tasks, stats, grove)) {
                 setUnlockedAchievements(prev => [...prev, achievement.id]);
-                ui.setAchievementToast(achievement);
+                notification.setAchievementToast(achievement);
                 playSoundEffect('achievement');
-                setTimeout(() => ui.setAchievementToast(null), 4000);
+                // Clear any running dismiss timer before setting a new one so
+                // multiple back-to-back unlocks don't race each other.
+                if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+                achievementTimerRef.current = setTimeout(() => {
+                    notification.setAchievementToast(null);
+                    achievementTimerRef.current = null;
+                }, 4000);
             }
         }
-    }, [tasks, stats, grove, unlockedAchievements, allDataLoaded, playSoundEffect, ui, setUnlockedAchievements]);
+    }, [tasks, stats, grove, unlockedAchievements, allDataLoaded, playSoundEffect, notification, setUnlockedAchievements]);
+
+    // Clean up on unmount
+    useEffect(() => {
+        return () => {
+            if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
+        };
+    }, []);
 
     // Daily Momentum Goal
     const MOMENTUM_GOAL = 5;
@@ -71,24 +95,24 @@ export const useStatsAndGrove = ({
     );
     const momentumProgress = Math.min(tasksCompletedToday / MOMENTUM_GOAL, 1);
 
+    // Fix 8: Use context-provided momentumAwardedDate instead of raw localStorage key.
     useEffect(() => {
-        if (allDataLoaded && tasksCompletedToday >= MOMENTUM_GOAL) {
+        if (!allDataLoaded) return;
+        if (tasksCompletedToday >= MOMENTUM_GOAL) {
             const today = getTodayDateString();
-            const awardedDateKey = 'momentum-awarded-date';
-            const lastAwardedDate = localStorage.getItem(awardedDateKey);
-            if (lastAwardedDate !== today) {
+            if (momentumAwardedDate !== today) {
                 setStats(prev => ({ ...prev, goldenSeeds: prev.goldenSeeds + 1 }));
-                localStorage.setItem(awardedDateKey, today);
+                setMomentumAwardedDate(today);
             }
         }
-    }, [tasksCompletedToday, allDataLoaded, setStats]);
+    }, [tasksCompletedToday, allDataLoaded, momentumAwardedDate, setMomentumAwardedDate, setStats]);
 
     const handlePlantSeed = useCallback(() => {
         if (stats.goldenSeeds > 0) {
             setStats(prev => ({ ...prev, goldenSeeds: prev.goldenSeeds - 1 }));
-            ui.setIsPlanting(true);
+            notification.setIsPlanting(true);
         }
-    }, [stats.goldenSeeds, setStats, ui]);
+    }, [stats.goldenSeeds, setStats, notification]);
 
     const finishPlanting = useCallback(() => {
         const unlockedTrees = ['oak'];
@@ -97,9 +121,12 @@ export const useStatsAndGrove = ({
         const randomType = unlockedTrees[Math.floor(Math.random() * unlockedTrees.length)];
 
         setGrove(prev => [...prev, { id: Date.now(), growthPoints: 0, maxGrowth: 10, type: randomType }]);
-        ui.setIsPlanting(false);
-    }, [unlockedAchievements, setGrove, ui]);
+        notification.setIsPlanting(false);
+    }, [unlockedAchievements, setGrove, notification]);
 
+    // Fix 2: handleFocusComplete now writes to React state (setFocusHistory) instead
+    // of directly to localStorage, eliminating the dual-write drift that caused
+    // ReviewView to fall back to fragile task-level estimation.
     const handleFocusComplete = useCallback((taskId) => {
         toggleTask(taskId);
         setStats(s => ({ ...s, focusedTasksCompleted: s.focusedTasksCompleted + 1 }));
@@ -107,37 +134,30 @@ export const useStatsAndGrove = ({
             t.id === taskId ? { ...t, focusSessions: (t.focusSessions || 0) + 1 } : t
         ));
 
-        // Append timestamped log to offline focus history
-        try {
-            const task = tasks.find(t => t.id === taskId);
-            const history = JSON.parse(localStorage.getItem('aura-focus-history') || '[]');
-            history.push({
+        // Append timestamped entry to the React-managed focus history
+        const task = tasks.find(t => t.id === taskId);
+        setFocusHistory(prev => [
+            ...prev,
+            {
                 timestamp: new Date().toISOString(),
                 taskId,
                 category: task?.category || 'General',
                 durationMinutes: 25
-            });
-            localStorage.setItem('aura-focus-history', JSON.stringify(history));
-        } catch (e) {
-            console.error('Failed to log focus history to localStorage:', e);
-        }
+            }
+        ]);
 
-        showNotification("Focus session complete!", {
-            body: `Great work on: ${tasks.find(t => t.id === taskId)?.text}`,
+        showNotification('Focus session complete!', {
+            body: `Great work on: ${task?.text ?? ''}`,
         });
-    }, [toggleTask, setStats, setTasks, showNotification, tasks]);
+    }, [toggleTask, setStats, setTasks, setFocusHistory, showNotification, tasks]);
 
     const dailyStats = useMemo(() => {
         const todayStr = getTodayDateString();
         const completedToday = tasks.filter(t => t.completionDate === todayStr).length;
-        const focusToday = tasks.reduce((acc, task) => {
-            if (task.completionDate === todayStr) {
-                return acc + (task.focusSessions || 0);
-            }
-            return acc;
-        }, 0);
+        // Fix 2: derive focusSessions for today from the canonical focusHistory state
+        const focusToday = focusHistory.filter(h => h.timestamp?.startsWith(todayStr)).length;
         return { completed: completedToday, focusSessions: focusToday, achievements: unlockedAchievements.length };
-    }, [tasks, unlockedAchievements]);
+    }, [tasks, focusHistory, unlockedAchievements]);
 
     return {
         tasksCompletedToday,

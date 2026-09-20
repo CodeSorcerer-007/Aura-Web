@@ -5,6 +5,24 @@
   "description": "A mindful offline productivity companion featuring visual time blocking, ambient soundscapes, personal grove, and flow management.",
   "icons": [
     {
+      "src": "/Aura_logo.png",
+      "type": "image/png",
+      "sizes": "1024x1024",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/icon-192.svg",
       "type": "image/svg+xml",
       "sizes": "192x192",
@@ -15,6 +33,11 @@
       "type": "image/svg+xml",
       "sizes": "512x512",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "type": "image/png",
+      "sizes": "48x48"
     },
     {
       "src": "/favicon.svg",

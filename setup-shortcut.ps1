@@ -12,6 +12,10 @@ $shortcut.TargetPath = "wscript.exe"
 $shortcut.Arguments = "`"$targetDir\launch-aura.vbs`""
 $shortcut.WorkingDirectory = $targetDir
 $shortcut.Description = "Aura - 100% Offline Mindful Productivity App"
+$iconFile = Join-Path $targetDir "public\favicon.ico"
+if (Test-Path $iconFile) {
+    $shortcut.IconLocation = "$iconFile,0"
+}
 $shortcut.Save()
 
 Write-Host "Desktop shortcut created successfully at: $shortcutPath" -ForegroundColor Green

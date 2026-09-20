@@ -1,13 +1,21 @@
-import React, { createContext, useContext, useMemo, useCallback } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, useEffect } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
 import { playHarmonicUiSound } from '../hooks/useSoundEffects';
 import { defaultCategories } from '../utils/constants';
-import { useUI } from './UIContext';
+import { useNotification } from './NotificationContext';
+
+// ---------------------------------------------------------------------------
+// Pruning constant for journal entries.
+// At one entry per day, 730 entries covers ~2 years of continuous daily use —
+// well within the 5 MB localStorage budget, and far more than most users will
+// ever accumulate.
+// ---------------------------------------------------------------------------
+const MAX_JOURNAL_ENTRIES = 730;
 
 const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
-    const ui = useUI();
+    const notification = useNotification();
 
     const [customCategories, setCustomCategories, categoriesLoaded] = usePreferences('aura-custom-categories', {});
     const [hasLaunched, setHasLaunched, launchedLoaded] = usePreferences('aura-launched', false);
@@ -22,6 +30,16 @@ export const SettingsProvider = ({ children }) => {
     const settingsDataLoaded = categoriesLoaded && launchedLoaded && journalLoaded &&
         shutdownTimeLoaded && soundEffectsLoaded && autoArchiveLoaded && notificationsLoaded;
 
+    // Prune journal entries once on mount so localStorage never hits quota.
+    useEffect(() => {
+        if (!settingsDataLoaded) return;
+        if (journalEntries.length > MAX_JOURNAL_ENTRIES) {
+            // Keep the most recent entries (newest are appended, so keep the tail)
+            setJournalEntries(prev => prev.slice(prev.length - MAX_JOURNAL_ENTRIES));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [settingsDataLoaded]); // intentionally run once after load
+
     const allCategories = useMemo(() => ({ ...defaultCategories, ...customCategories }), [customCategories]);
 
     // Sound effect helper with harmonic scale & Monolith awareness
@@ -35,16 +53,19 @@ export const SettingsProvider = ({ children }) => {
         if (enabled && 'Notification' in window && Notification.permission !== 'granted') {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                ui.setToastMessage({ type: 'success', text: 'Notifications enabled!' });
+                notification.setToastMessage({ type: 'success', text: 'Notifications enabled!' });
                 setNotificationsEnabled(true);
             } else {
-                ui.setToastMessage({ type: 'error', text: 'Notifications were denied.' });
+                notification.setToastMessage({ type: 'error', text: 'Notifications were denied.' });
                 setNotificationsEnabled(false);
             }
         }
-    }, [setNotificationsEnabled, ui]);
+    }, [setNotificationsEnabled, notification]);
 
-    const value = {
+    // Memoize to prevent all SettingsContext consumers from re-rendering when
+    // unrelated state (e.g. tasks in a sibling context) triggers a provider
+    // re-render higher in the tree.
+    const value = useMemo(() => ({
         settingsDataLoaded,
         customCategories,
         setCustomCategories,
@@ -67,7 +88,21 @@ export const SettingsProvider = ({ children }) => {
         tunnelVision,
         setTunnelVision,
         playSoundEffect
-    };
+    }), [
+        settingsDataLoaded,
+        customCategories, setCustomCategories,
+        allCategories,
+        hasLaunched, setHasLaunched,
+        journalEntries, setJournalEntries,
+        shutdownTime, setShutdownTime,
+        soundEffectsEnabled, setSoundEffectsEnabled,
+        autoArchiveEnabled, setAutoArchiveEnabled,
+        notificationsEnabled, setNotificationsEnabled,
+        handleSetNotifications,
+        monolithTaskId, setMonolithTaskId,
+        tunnelVision, setTunnelVision,
+        playSoundEffect
+    ]);
 
     return (
         <SettingsContext.Provider value={value}>

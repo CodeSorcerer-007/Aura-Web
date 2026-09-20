@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useMemo, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
 import { motivationalQuotes, demoTasks } from '../utils/constants';
 import { getTodayDateString } from '../utils/dateUtils';
-import { useUI } from './UIContext';
+import { useNotification } from './NotificationContext';
 import { useSettings } from './SettingsContext';
 import { useGrove } from './GroveContext';
 import { useTaskOperations } from '../hooks/useTaskOperations';
@@ -17,15 +17,14 @@ import {
 
 const TaskContext = createContext(null);
 
-export const TaskProvider = ({ children, ui: propUI }) => {
-    const contextUI = useUI();
-    const ui = propUI || contextUI;
+export const TaskProvider = ({ children }) => {
+    const notification = useNotification();
 
     // Consume sibling contexts
     const settings = useSettings();
     const groveCtx = useGrove();
 
-    // Task-specific persistent local storage
+    // Task-specific persistent state
     const [tasks, setTasks, tasksLoaded] = usePreferences('aura-tasks', demoTasks);
     const [templates, setTemplates, templatesLoaded] = usePreferences('aura-templates', []);
     const [tomorrowSeed, setTomorrowSeed] = usePreferences('aura-tomorrow-seed', null);
@@ -41,17 +40,26 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         setTomorrowSeed({ text: text.trim(), date: tomorrowStr });
         settings.playSoundEffect('add');
-        ui.setToastMessage({
+        notification.setToastMessage({
             type: 'success',
             text: '🌱 Seed planted under night blanket. Sweet dreams.'
         });
-    }, [setTomorrowSeed, settings, ui]);
+    }, [setTomorrowSeed, settings, notification]);
 
-    // Tomorrow's Seed blossoming check on new day
-    useEffect(() => {
+    // -------------------------------------------------------------------------
+    // Tomorrow's Seed blossoming — including midnight cross-over fix.
+    // visibilitychange + window focus listeners re-check so the tab doesn't
+    // need a full reload after midnight.
+    // -------------------------------------------------------------------------
+    const seedCheckRef = useRef(false);
+
+    const checkAndBlossom = useCallback(() => {
         if (!allDataLoaded || !tomorrowSeed || !tomorrowSeed.text) return;
+        if (seedCheckRef.current) return;
+
         const todayStr = getTodayDateString();
         if (tomorrowSeed.date <= todayStr) {
+            seedCheckRef.current = true;
             const seedText = tomorrowSeed.text;
             const newTaskId = crypto.randomUUID();
             const seedTask = {
@@ -68,7 +76,7 @@ export const TaskProvider = ({ children, ui: propUI }) => {
                 completionDate: null,
                 recurring: null,
                 dependsOn: null,
-                notes: 'Planted as Tomorrow\'s Seed during evening wind-down.',
+                notes: "Planted as Tomorrow's Seed during evening wind-down.",
                 attachments: [],
                 voiceNotes: [],
                 tags: ['seed'],
@@ -79,21 +87,39 @@ export const TaskProvider = ({ children, ui: propUI }) => {
             setTasks(prev => [seedTask, ...prev]);
             settings.setMonolithTaskId(newTaskId);
             setTomorrowSeed(null);
-            ui.setToastMessage({
+            notification.setToastMessage({
                 type: 'success',
                 text: '🌱 Good morning! Your seed blossomed into Today\'s Monolith.'
             });
         }
-    }, [allDataLoaded, tomorrowSeed, setTasks, settings, setTomorrowSeed, ui]);
+    }, [allDataLoaded, tomorrowSeed, setTasks, settings, setTomorrowSeed, notification]);
 
-    // Modular Hook: Task Operations (CRUD, attachments, templates, subtasks, pinning)
+    useEffect(() => { seedCheckRef.current = false; }, [tomorrowSeed]);
+    useEffect(() => { checkAndBlossom(); }, [checkAndBlossom]);
+
+    useEffect(() => {
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') {
+                seedCheckRef.current = false;
+                checkAndBlossom();
+            }
+        };
+        const onFocus = () => { seedCheckRef.current = false; checkAndBlossom(); };
+        document.addEventListener('visibilitychange', onVisible);
+        window.addEventListener('focus', onFocus);
+        return () => {
+            document.removeEventListener('visibilitychange', onVisible);
+            window.removeEventListener('focus', onFocus);
+        };
+    }, [checkAndBlossom]);
+
+    // Modular Hook: Task Operations
     const taskOps = useTaskOperations({
-        tasks,
         setTasks,
         templates,
         setTemplates,
         setGrove: groveCtx.setGrove,
-        ui,
+        notification,
         playSoundEffect: settings.playSoundEffect
     });
 
@@ -114,6 +140,10 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         setUnlockedAchievements: groveCtx.setUnlockedAchievements,
         grove: groveCtx.grove,
         setGrove: groveCtx.setGrove,
+        focusHistory: groveCtx.focusHistory,
+        setFocusHistory: groveCtx.setFocusHistory,
+        momentumAwardedDate: groveCtx.momentumAwardedDate,
+        setMomentumAwardedDate: groveCtx.setMomentumAwardedDate,
         allDataLoaded,
         autoArchiveEnabled: settings.autoArchiveEnabled,
         playSoundEffect: settings.playSoundEffect,
@@ -123,7 +153,7 @@ export const TaskProvider = ({ children, ui: propUI }) => {
             }
         },
         toggleTask: taskOps.toggleTask,
-        ui
+        notification,
     });
 
     // Modular Hook: Rituals, Notifications, Export & Import
@@ -154,22 +184,24 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         setHasLaunched: settings.setHasLaunched,
         journalEntries: settings.journalEntries,
         setJournalEntries: settings.setJournalEntries,
+        focusHistory: groveCtx.focusHistory,
+        setFocusHistory: groveCtx.setFocusHistory,
         shutdownTime: settings.shutdownTime,
         setShutdownTime: settings.setShutdownTime,
         soundEffectsEnabled: settings.soundEffectsEnabled,
         setSoundEffectsEnabled: settings.setSoundEffectsEnabled,
         autoArchiveEnabled: settings.autoArchiveEnabled,
         setAutoArchiveEnabled: settings.setAutoArchiveEnabled,
-        ui
+        notification,
     });
 
-    // Build complete state payload for snapshot and safety vault
+    // Snapshot / Safety Vault
     const buildFullSnapshotPayload = useCallback(() => ({
-        tasks,
-        templates,
+        tasks, templates,
         stats: groveCtx.stats,
         unlockedAchievements: groveCtx.unlockedAchievements,
         grove: groveCtx.grove,
+        focusHistory: groveCtx.focusHistory,
         customCategories: settings.customCategories,
         journalEntries: settings.journalEntries,
         settings: {
@@ -180,18 +212,15 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         }
     }), [
         tasks, templates,
-        groveCtx.stats, groveCtx.unlockedAchievements, groveCtx.grove,
+        groveCtx.stats, groveCtx.unlockedAchievements, groveCtx.grove, groveCtx.focusHistory,
         settings.customCategories, settings.journalEntries,
         settings.shutdownTime, settings.soundEffectsEnabled,
         settings.autoArchiveEnabled, settings.notificationsEnabled
     ]);
 
-    // Record rolling daily snapshot
     useEffect(() => {
         if (!allDataLoaded) return;
-        const timer = setTimeout(() => {
-            recordDailySnapshot(buildFullSnapshotPayload());
-        }, 1500);
+        const timer = setTimeout(() => recordDailySnapshot(buildFullSnapshotPayload()), 1500);
         return () => clearTimeout(timer);
     }, [allDataLoaded, buildFullSnapshotPayload]);
 
@@ -203,64 +232,77 @@ export const TaskProvider = ({ children, ui: propUI }) => {
         if (data.stats) groveCtx.setStats(data.stats);
         if (data.unlockedAchievements) groveCtx.setUnlockedAchievements(data.unlockedAchievements);
         if (data.grove) groveCtx.setGrove(data.grove);
+        if (data.focusHistory) groveCtx.setFocusHistory(data.focusHistory);
         if (data.customCategories) settings.setCustomCategories(data.customCategories);
         if (data.journalEntries) settings.setJournalEntries(data.journalEntries);
         if (data.settings?.shutdownTime) settings.setShutdownTime(data.settings.shutdownTime);
         if (data.settings?.soundEffectsEnabled !== undefined) settings.setSoundEffectsEnabled(data.settings.soundEffectsEnabled);
         if (data.settings?.autoArchiveEnabled !== undefined) settings.setAutoArchiveEnabled(data.settings.autoArchiveEnabled);
         if (data.settings?.notificationsEnabled !== undefined) settings.setNotificationsEnabled(data.settings.notificationsEnabled);
-        ui.setToastMessage({ type: 'success', text: 'Snapshot restored successfully!' });
+        notification.setToastMessage({ type: 'success', text: 'Snapshot restored successfully!' });
         return true;
-    }, [setTasks, setTemplates, groveCtx, settings, ui]);
+    }, [setTasks, setTemplates, groveCtx, settings, notification]);
 
     const handleSaveSafetyVault = useCallback(async () => {
         const payload = buildFullSnapshotPayload();
         const res = await exportSafetyVaultToFile(payload);
-        if (res && res.success) {
-            ui.setToastMessage({ type: 'success', text: 'Safety Vault saved to disk!' });
+        if (res?.success) {
+            notification.setToastMessage({ type: 'success', text: 'Safety Vault saved to disk!' });
         }
-    }, [buildFullSnapshotPayload, ui]);
+    }, [buildFullSnapshotPayload, notification]);
 
     const dailyQuote = useMemo(() => {
         const dayOfYear = Math.floor((new Date() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
         return motivationalQuotes[dayOfYear % motivationalQuotes.length];
     }, []);
 
-    const value = {
+    // Memoize the context value so that consumers only re-render when the
+    // specific slices they use actually change.  Without this, every render of
+    // TaskProvider (triggered by any state update anywhere in the tree) would
+    // produce a new object reference and force all 35+ consumers to re-render
+    // even if nothing they care about changed.
+    const value = useMemo(() => ({
         allDataLoaded,
-        tasks,
-        setTasks,
-        templates,
-        setTemplates,
-        tomorrowSeed,
-        setTomorrowSeed,
+        tasks, setTasks,
+        templates, setTemplates,
+        tomorrowSeed, setTomorrowSeed,
         plantTomorrowSeed,
         dailyQuote,
-        // Task operations (spread from hook)
         ...taskOps,
-        // Stats & Grove computed values
         momentumProgress,
         dailyStats,
         handlePlantSeed,
         finishPlanting,
         handleFocusComplete,
-        // Rituals & Safety Vault
-        shutdownRitual,
-        setShutdownRitual,
+        shutdownRitual, setShutdownRitual,
         shutdownRitualMessages,
-        handleExport,
-        handleImportFile,
+        handleExport, handleImportFile,
         testShutdownReminder,
         getRollingSnapshots,
         restoreSnapshotById,
         handleSaveSafetyVault
-    };
+    }), [
+        allDataLoaded,
+        tasks, setTasks,
+        templates, setTemplates,
+        tomorrowSeed, setTomorrowSeed,
+        plantTomorrowSeed,
+        dailyQuote,
+        taskOps,
+        momentumProgress,
+        dailyStats,
+        handlePlantSeed,
+        finishPlanting,
+        handleFocusComplete,
+        shutdownRitual, setShutdownRitual,
+        shutdownRitualMessages,
+        handleExport, handleImportFile,
+        testShutdownReminder,
+        restoreSnapshotById,
+        handleSaveSafetyVault,
+    ]);
 
-    return (
-        <TaskContext.Provider value={value}>
-            {children}
-        </TaskContext.Provider>
-    );
+    return <TaskContext.Provider value={value}>{children}</TaskContext.Provider>;
 };
 
 export const useTasks = () => {

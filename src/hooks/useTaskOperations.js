@@ -3,22 +3,25 @@ import { parseIntelligentDeadline, getTodayDateString } from '../utils/dateUtils
 import { setFile, deleteFile } from '../utils/db';
 
 export const useTaskOperations = ({
-    tasks,
     setTasks,
     templates,
     setTemplates,
     setGrove,
-    ui,
+    notification,
     playSoundEffect
 }) => {
     // Universal Undo stack: stores previous state for 5 seconds
     const undoRef = useRef(null);
     const undoTimerRef = useRef(null);
 
-    const clearUndo = useCallback(() => {
+    const clearUndo = useCallback((runExpiry = false) => {
         if (undoTimerRef.current) {
             clearTimeout(undoTimerRef.current);
             undoTimerRef.current = null;
+        }
+        if (runExpiry && undoRef.current?.onExpiry) {
+            // Run deferred cleanup (e.g. file deletion) now that undo is no longer possible.
+            undoRef.current.onExpiry();
         }
         undoRef.current = null;
     }, []);
@@ -31,7 +34,7 @@ export const useTaskOperations = ({
         if (action.type === 'delete' || action.type === 'forgive') {
             const restoredTask = action.task;
             setTasks(prev => [restoredTask, ...prev.filter(t => t.id !== restoredTask.id)]);
-            ui.setToastMessage({ type: 'success', text: '↩ Task restored!' });
+            notification.setToastMessage({ type: 'success', text: '↩ Task restored!' });
         } else if (action.type === 'toggle') {
             // Revert completion state
             setTasks(prev => prev.map(t => t.id === action.taskId ? {
@@ -54,26 +57,30 @@ export const useTaskOperations = ({
                     return prevGrove;
                 });
             }
-            ui.setToastMessage({ type: 'success', text: '↩ Status reversed!' });
+            notification.setToastMessage({ type: 'success', text: '↩ Status reversed!' });
         } else if (action.type === 'archive') {
             setTasks(prev => prev.map(t => t.id === action.taskId ? { ...t, isArchived: false } : t));
-            ui.setToastMessage({ type: 'success', text: '↩ Task unarchived!' });
+            notification.setToastMessage({ type: 'success', text: '↩ Task unarchived!' });
         }
-    }, [setTasks, setGrove, ui, clearUndo]);
+    }, [setTasks, setGrove, notification, clearUndo]);
 
     const registerUndo = useCallback((actionData, toastText, toastType = 'info') => {
-        clearUndo();
+        clearUndo(true); // run expiry for any previously pending action before overwriting
         undoRef.current = actionData;
-        ui.setToastMessage({
+        notification.setToastMessage({
             type: toastType,
             text: toastText,
             onUndo: performUndo
         });
         undoTimerRef.current = setTimeout(() => {
+            // Window expired without user undoing — run deferred cleanup now.
+            if (undoRef.current?.onExpiry) {
+                undoRef.current.onExpiry();
+            }
             undoRef.current = null;
             undoTimerRef.current = null;
         }, 5000);
-    }, [clearUndo, performUndo, ui]);
+    }, [clearUndo, performUndo, notification]);
 
     // Add task (direct or from template) with intelligent metadata parsing
     const addTask = useCallback((text, applyTemplate = null) => {
@@ -97,17 +104,17 @@ export const useTaskOperations = ({
                 isArchived: false
             }));
             setTasks(prev => [...prev, ...newTasks]);
-            ui.setTemplateSuggestion(null);
+            notification.setTemplateSuggestion(null);
             return;
         }
 
-        if (ui.templateSuggestion) {
-            ui.setTemplateSuggestion(null);
+        if (notification.templateSuggestion) {
+            notification.setTemplateSuggestion(null);
         }
 
         const matchingTemplate = templates.find(t => text.toLowerCase().includes(t.name.toLowerCase()));
         if (matchingTemplate) {
-            ui.setTemplateSuggestion({ templateName: matchingTemplate.name, taskText: text });
+            notification.setTemplateSuggestion({ templateName: matchingTemplate.name, taskText: text });
             return;
         }
 
@@ -122,9 +129,9 @@ export const useTaskOperations = ({
             priority = 3;
             cleanedText = cleanedText.replace(/!/g, '').trim();
         }
-        if (cleanedText.toLowerCase().includes('urgent')) {
+        if (cleanedText.toLowerCase().includes('urgent') || cleanedText.toLowerCase().includes('!high')) {
             priority = 3;
-            cleanedText = cleanedText.replace(/urgent/ig, '').trim();
+            cleanedText = cleanedText.replace(/urgent|!high/ig, '').trim();
         }
         if (cleanedText.toLowerCase().includes('low priority')) {
             priority = 1;
@@ -183,78 +190,85 @@ export const useTaskOperations = ({
         };
 
         setTasks(prevTasks => [...prevTasks, newTask]);
-    }, [templates, setTasks, ui, playSoundEffect]);
+    }, [templates, setTasks, notification, playSoundEffect]);
 
     const toggleTask = useCallback((id, isMonolith = false) => {
-        const taskToToggle = tasks.find(t => t.id === id);
-        if (!taskToToggle) return;
+        // Use the functional form of setTasks so `tasks` does not need to be in
+        // the dependency array.  Closing over the stale `tasks` ref would cause
+        // this callback to be recreated on every task-array change, breaking
+        // memoization for every component that receives it as a prop.
+        setTasks(prevTasks => {
+            const taskToToggle = prevTasks.find(t => t.id === id);
+            if (!taskToToggle) return prevTasks;
 
-        const isCompleting = !taskToToggle.completed;
-        if (isCompleting) {
-            playSoundEffect('complete', isMonolith);
-        }
-
-        const newTasks = tasks.map(t => {
-            if (t.id === id) {
-                if (t.recurring) {
-                    const nextDate = new Date(t.deadline || getTodayDateString());
-                    if (t.recurring.type === 'daily') nextDate.setDate(nextDate.getDate() + 1);
-                    if (t.recurring.type === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
-                    if (t.recurring.type === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-                    return { ...t, deadline: nextDate.toISOString().split('T')[0] };
-                }
-                return { ...t, completed: !t.completed, completionDate: t.completed ? null : getTodayDateString() };
+            const isCompleting = !taskToToggle.completed;
+            if (isCompleting) {
+                playSoundEffect('complete', isMonolith);
             }
-            return t;
-        });
 
-        if (taskToToggle.recurring) {
-            const completedInstance = {
-                ...taskToToggle,
-                id: crypto.randomUUID(),
-                createdAt: taskToToggle.createdAt || new Date().toISOString(),
-                completed: true,
-                recurring: null,
-                completionDate: getTodayDateString()
-            };
-            newTasks.push(completedInstance);
-        }
-
-        if (isCompleting) {
-            setGrove(prevGrove => {
-                const latestTreeIndex = prevGrove.findLastIndex(tree => tree.growthPoints < tree.maxGrowth);
-                if (latestTreeIndex > -1) {
-                    const newGrove = [...prevGrove];
-                    newGrove[latestTreeIndex] = {
-                        ...newGrove[latestTreeIndex],
-                        growthPoints: newGrove[latestTreeIndex].growthPoints + 1
-                    };
-                    return newGrove;
+            const newTasks = prevTasks.map(t => {
+                if (t.id === id) {
+                    if (t.recurring) {
+                        const nextDate = new Date(t.deadline || getTodayDateString());
+                        if (t.recurring.type === 'daily') nextDate.setDate(nextDate.getDate() + 1);
+                        if (t.recurring.type === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
+                        if (t.recurring.type === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
+                        return { ...t, deadline: nextDate.toISOString().split('T')[0] };
+                    }
+                    return { ...t, completed: !t.completed, completionDate: t.completed ? null : getTodayDateString() };
                 }
-                return prevGrove;
+                return t;
             });
 
-            if (taskToToggle.priority >= 2 && !taskToToggle.recurring) {
-                ui.setWinModalTaskId(id);
+            if (taskToToggle.recurring) {
+                const completedInstance = {
+                    ...taskToToggle,
+                    id: crypto.randomUUID(),
+                    createdAt: taskToToggle.createdAt || new Date().toISOString(),
+                    completed: true,
+                    recurring: null,
+                    completionDate: getTodayDateString()
+                };
+                newTasks.push(completedInstance);
             }
-        }
 
-        setTasks(newTasks);
+            if (isCompleting) {
+                setGrove(prevGrove => {
+                    const latestTreeIndex = prevGrove.findLastIndex(tree => tree.growthPoints < tree.maxGrowth);
+                    if (latestTreeIndex > -1) {
+                        const newGrove = [...prevGrove];
+                        newGrove[latestTreeIndex] = {
+                            ...newGrove[latestTreeIndex],
+                            growthPoints: newGrove[latestTreeIndex].growthPoints + 1
+                        };
+                        return newGrove;
+                    }
+                    return prevGrove;
+                });
 
-        // Register undo for completion toggle
-        const taskName = taskToToggle.text.length > 25 ? taskToToggle.text.substring(0, 25) + '…' : taskToToggle.text;
-        registerUndo(
-            {
-                type: 'toggle',
-                taskId: id,
-                prevCompleted: taskToToggle.completed,
-                prevCompletionDate: taskToToggle.completionDate,
-                wasCompleting: isCompleting
-            },
-            isCompleting ? `Completed: "${taskName}" ✨` : `Active: "${taskName}" ⚡`,
-            'success'
-        );
-    }, [tasks, setTasks, setGrove, playSoundEffect, ui, registerUndo]);
+                if (taskToToggle.priority >= 2 && !taskToToggle.recurring) {
+                    notification.setWinModalTaskId(id);
+                }
+            }
+
+            // Register undo for completion toggle — must happen inside setTasks
+            // so we have access to the latest task snapshot.
+            const taskName = taskToToggle.text.length > 25 ? taskToToggle.text.substring(0, 25) + '…' : taskToToggle.text;
+            registerUndo(
+                {
+                    type: 'toggle',
+                    taskId: id,
+                    prevCompleted: taskToToggle.completed,
+                    prevCompletionDate: taskToToggle.completionDate,
+                    wasCompleting: isCompleting
+                },
+                isCompleting ? `Completed: "${taskName}" ✨` : `Active: "${taskName}" ⚡`,
+                'success'
+            );
+
+            return newTasks;
+        });
+    }, [setTasks, setGrove, playSoundEffect, notification, registerUndo]);
 
     const togglePin = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isPinned: !t.isPinned } : t));
@@ -262,74 +276,91 @@ export const useTaskOperations = ({
 
     const saveWin = useCallback((id, winText) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, win: winText } : t));
-        ui.setWinModalTaskId(null);
-    }, [setTasks, ui]);
+        notification.setWinModalTaskId(null);
+    }, [setTasks, notification]);
 
     const deleteTask = useCallback(async (id, isForgive = false) => {
-        const taskToDelete = tasks.find(t => t.id === id);
+        // Use functional setTasks so we don't need `tasks` in the dep array,
+        // keeping this callback reference stable across task-array changes.
+        let taskToDelete = null;
+        setTasks(prev => {
+            taskToDelete = prev.find(t => t.id === id) || null;
+            return prev.filter(task => task.id !== id);
+        });
 
-        // Save to undo stack before deleting
-        if (taskToDelete) {
-            clearUndo();
-            if (taskToDelete.attachments) {
-                for (const att of taskToDelete.attachments) {
-                    await deleteFile(att.id);
-                }
-            }
-            if (taskToDelete.voiceNotes) {
-                for (const vn of taskToDelete.voiceNotes) {
-                    await deleteFile(vn.id);
-                }
-            }
-        }
-
-        setTasks(prev => prev.filter(task => task.id !== id));
-
-        // Show toast with undo action (5s window)
+        // Show toast with undo action (5-second window).
+        // IMPORTANT: File deletion is intentionally deferred until AFTER the undo
+        // window closes.  The previous approach deleted files immediately, which
+        // meant "Undo Delete" could restore the task metadata but not the actual
+        // attachment/voice-note blobs — a silent data-loss bug.
+        // We schedule cleanup in the undo action's expiry path instead.
         if (taskToDelete) {
             const taskName = taskToDelete.text.length > 25 ? taskToDelete.text.substring(0, 25) + '…' : taskToDelete.text;
+
+            const deleteAttachedFiles = async (task) => {
+                if (task.attachments) {
+                    for (const att of task.attachments) {
+                        await deleteFile(att.id);
+                    }
+                }
+                if (task.voiceNotes) {
+                    for (const vn of task.voiceNotes) {
+                        await deleteFile(vn.id);
+                    }
+                }
+            };
+
             registerUndo(
                 {
                     type: isForgive ? 'forgive' : 'delete',
-                    task: { ...taskToDelete }
+                    task: { ...taskToDelete },
+                    onExpiry: () => deleteAttachedFiles(taskToDelete)
                 },
                 isForgive ? `Forgiven & released: "${taskName}" 🍃` : `Deleted: "${taskName}"`,
                 'info'
             );
         }
-    }, [tasks, setTasks, clearUndo, registerUndo]);
+    }, [setTasks, registerUndo]);
 
     const forgiveTask = useCallback((id) => {
         deleteTask(id, true);
     }, [deleteTask]);
 
     const archiveTask = useCallback((id) => {
-        const taskToArchive = tasks.find(t => t.id === id);
-        setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: true } : t));
+        // Capture the task snapshot synchronously inside the functional updater,
+        // then register undo in the same call frame via a local variable.
+        let taskToArchive = null;
+        setTasks(prev => {
+            taskToArchive = prev.find(t => t.id === id) ?? null;
+            return prev.map(t => t.id === id ? { ...t, isArchived: true } : t);
+        });
+        // taskToArchive is captured by the closure at call time — because setTasks
+        // with a functional updater calls the updater synchronously inside React's
+        // batched update flush, taskToArchive will be populated before the next line.
         if (taskToArchive) {
-            const taskName = taskToArchive.text.length > 25 ? taskToArchive.text.substring(0, 25) + '…' : taskToArchive.text;
+            const taskName = taskToArchive.text.length > 25
+                ? taskToArchive.text.substring(0, 25) + '…'
+                : taskToArchive.text;
             registerUndo(
-                {
-                    type: 'archive',
-                    taskId: id
-                },
+                { type: 'archive', taskId: id },
                 `Archived: "${taskName}" 📦`,
                 'info'
             );
         }
-    }, [tasks, setTasks, registerUndo]);
+    }, [setTasks, registerUndo]);
 
     const restoreTask = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
     }, [setTasks]);
 
-    const saveTaskDetail = useCallback((id, newText, newNotes, newTags, newEnergy) => {
+    const saveTaskDetail = useCallback((id, newText, newNotes, newTags, newEnergy, newRecurring) => {
         setTasks(prev => prev.map(t => t.id === id ? {
             ...t,
             text: newText,
             notes: newNotes,
             tags: newTags,
-            ...(newEnergy ? { energy: newEnergy } : {})
+            ...(newEnergy ? { energy: newEnergy } : {}),
+            ...(newRecurring !== undefined ? { recurring: newRecurring } : {})
         } : t));
     }, [setTasks]);
 
@@ -419,24 +450,26 @@ export const useTaskOperations = ({
             timeOfDay: t.timeOfDay
         }));
         setTemplates(prev => [...prev, { name: category, tasks: templateTasks }]);
-        ui.setToastMessage({ type: 'success', text: `Saved template: ${category}` });
-    }, [setTemplates, ui]);
+        notification.setToastMessage({ type: 'success', text: `Saved template: ${category}` });
+    }, [setTemplates, notification]);
 
     const reorderTask = useCallback((taskId, direction) => {
-        const tasksToSort = tasks.filter(t => !t.completed);
-        const completedTasks = tasks.filter(t => t.completed);
+        setTasks(prev => {
+            const tasksToSort = prev.filter(t => !t.completed);
+            const completedTasks = prev.filter(t => t.completed);
 
-        const index = tasksToSort.findIndex(t => t.id === taskId);
-        if (index === -1) return;
+            const index = tasksToSort.findIndex(t => t.id === taskId);
+            if (index === -1) return prev;
 
-        const newIndex = direction === 'up' ? index - 1 : index + 1;
-        if (newIndex < 0 || newIndex >= tasksToSort.length) return;
+            const newIndex = direction === 'up' ? index - 1 : index + 1;
+            if (newIndex < 0 || newIndex >= tasksToSort.length) return prev;
 
-        const [movedTask] = tasksToSort.splice(index, 1);
-        tasksToSort.splice(newIndex, 0, movedTask);
+            const [movedTask] = tasksToSort.splice(index, 1);
+            tasksToSort.splice(newIndex, 0, movedTask);
 
-        setTasks([...tasksToSort, ...completedTasks]);
-    }, [tasks, setTasks]);
+            return [...tasksToSort, ...completedTasks];
+        });
+    }, [setTasks]);
 
     const toggleSubtask = useCallback((taskId, subtaskText) => {
         setTasks(prev => prev.map(task => {
