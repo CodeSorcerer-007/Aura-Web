@@ -7,28 +7,8 @@ const CircadianSky = () => {
     const [now, setNow] = useState(new Date());
 
     useEffect(() => {
-        let interval = null;
-        const handleVisibility = () => {
-            if (!document.hidden) {
-                setNow(new Date());
-                if (!interval) {
-                    interval = setInterval(() => setNow(new Date()), 30000);
-                }
-            } else if (interval) {
-                clearInterval(interval);
-                interval = null;
-            }
-        };
-
-        if (typeof document !== 'undefined' && !document.hidden) {
-            interval = setInterval(() => setNow(new Date()), 30000);
-        }
-        document.addEventListener('visibilitychange', handleVisibility);
-
-        return () => {
-            if (interval) clearInterval(interval);
-            document.removeEventListener('visibilitychange', handleVisibility);
-        };
+        const interval = setInterval(() => setNow(new Date()), 30000);
+        return () => clearInterval(interval);
     }, []);
 
     const hour = now.getHours();
@@ -182,17 +162,8 @@ const CircadianSky = () => {
 };
 
 export const ThemeBackground = ({ theme }) => {
-    const [isVisible, setIsVisible] = useState(() => typeof document !== 'undefined' ? !document.hidden : true);
-
-    useEffect(() => {
-        if (typeof document === 'undefined') return;
-        const handleVisibility = () => setIsVisible(!document.hidden);
-        document.addEventListener('visibilitychange', handleVisibility);
-        return () => document.removeEventListener('visibilitychange', handleVisibility);
-    }, []);
-
     return (
-        <div className={`theme-bg theme-bg-${theme} ${!isVisible ? 'theme-bg-paused' : ''}`}>
+        <div className={`theme-bg theme-bg-${theme}`}>
             {theme === 'dark' && (
                 <div className="dark-stardust pointer-events-none">
                     <div className="dark-aurora-glow"></div>

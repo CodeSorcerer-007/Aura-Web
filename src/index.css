@@ -43,23 +43,14 @@ body {
   border-radius: 4px;
 }
 
-/* Accessibility: Respect Reduced Motion Preference universally */
+/* Accessibility: Respect Reduced Motion Preference for interactive UI */
 @media (prefers-reduced-motion: reduce) {
-  *, ::before, ::after {
+  :not(.theme-bg, .theme-bg *, .circadian-sky, .circadian-sky *, .dark-stardust, .dark-stardust *, .forest-particles *, .fireflies *, .sakura-petals *, .ocean-bubbles *, .ocean-fauna *, .cyber-code *, .crimson-mist *, .crimson-embers *, .nord-snow *, .dune-sand *) {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
-  .theme-bg, .theme-bg *, .circadian-sky, .circadian-sky *, .dark-stardust *, .forest-particles *, .fireflies *, .sakura-petals *, .ocean-bubbles *, .ocean-fauna *, .cyber-code *, .crimson-mist *, .crimson-embers * {
-    animation: none !important;
-    animation-play-state: paused !important;
-  }
-}
-
-/* Battery & Thermal: Freeze background animations when tab/window is hidden */
-.theme-bg-paused, .theme-bg-paused * {
-  animation-play-state: paused !important;
 }
 
 /* Custom Sleek Scrollbar */
