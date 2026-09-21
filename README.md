@@ -37,7 +37,7 @@ Aura runs as an independent native desktop application with custom Windows 11 Wi
 
 ### Method 2: Install as a Progressive Web App (PWA)
 1. Run `npm run preview` (or `npm run dev`) and open the local URL in **Google Chrome** or **Microsoft Edge**.
-2. Click the **"Install App"** button in Aura's header (or the install icon in your browser address bar).
+2. Click the install icon in your browser address bar (or browser menu > **"Install Aura"**).
 3. Chrome or Edge will install Aura directly to your **Windows Start Menu**, **Taskbar**, and **Desktop**.
 
 ---
