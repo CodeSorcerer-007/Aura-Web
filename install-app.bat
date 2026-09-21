@@ -35,10 +35,8 @@ echo.
 echo ========================================================
 echo [SUCCESS] Aura is installed and ready to use!
 echo.
-echo 1. A shortcut 'Aura' has been added to your Desktop.
-echo 2. Double-click the Desktop shortcut to open Aura anytime!
-echo 3. Alternatively, click 'Install App' in the top header
-echo    to add Aura directly into your Windows Start Menu.
+echo 1. A shortcut 'Aura' has been added to your Desktop and Start Menu.
+echo 2. Double-click the Desktop shortcut to open Aura in full screen anytime!
 echo ========================================================
 echo.
 pause
