@@ -9,7 +9,6 @@ import {
     HelpCircleIcon
 } from './Icons';
 import { Headphones, Maximize2, Minimize2 } from 'lucide-react';
-import { InstallAppButton } from './InstallAppButton';
 import { useSettings } from '../../context/SettingsContext';
 
 export const Header = ({
@@ -102,7 +101,6 @@ export const Header = ({
             </button>
         </div>
         <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-3 wco-no-drag">
-            <InstallAppButton />
             <button 
                 onClick={toggleFullScreen} 
                 className={`p-2 rounded-xl transition-all shadow-sm cursor-pointer border ${
