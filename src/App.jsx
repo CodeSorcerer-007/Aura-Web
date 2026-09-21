@@ -141,15 +141,18 @@ const AuraAppContent = () => {
         } catch {}
     }, [allDataLoaded, tasks, currentView]);
 
-    // Audio Autoplay Guard: Re-engagement Toast when ambient audio is active but suspended
+    // Audio Autoplay Guard: Re-engagement Toast when ambient audio is active but suspended or device changes
     useEffect(() => {
         const handleAmbientState = async (e) => {
             if (e.detail?.isSuspended) {
                 const { resumeAudioContext } = await import('./hooks/useAmbientSound');
+                const isDeviceChange = e.detail?.reason === 'devicechange';
                 setToastMessage({
                     type: 'warning',
-                    text: '🎧 Soundscape waiting for gesture — click anywhere to enable audio',
-                    actionText: 'Enable',
+                    text: isDeviceChange 
+                        ? 'Audio device changed — click to resume.' 
+                        : '🎧 Soundscape waiting for gesture — click anywhere to enable audio',
+                    actionText: isDeviceChange ? 'Resume' : 'Enable',
                     onAction: async () => {
                         await resumeAudioContext();
                     }

@@ -15,7 +15,7 @@
 }
 
 html {
-  scrollbar-gutter: stable;
+  scrollbar-gutter: stable both-edges;
 }
 
 /* Tabular numbers for clocks, timers, counters, and statistics */

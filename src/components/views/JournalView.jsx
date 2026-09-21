@@ -22,13 +22,29 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
     const [speechError, setSpeechError] = useState(null);
 
     const recognitionRef = useRef(null);
+    const prevDateRef = useRef(selectedDate);
+    const isDirtyRef = useRef(false);
 
-    // Fix 3: replaced the "setState during render" anti-pattern (prevSelectedDate
-    // comparison) with a proper useEffect that runs whenever selectedDate changes.
+    // In-Progress Overwrite Protection: If a user is actively writing and background
+    // state changes (e.g. snapshot vaulting, auto-archive), protect the in-progress draft from
+    // being clobbered unless the user explicitly switches the selectedDate.
     useEffect(() => {
-        const entry = journalEntries.find(e => e.date === selectedDate);
-        setEntryContent(entry?.content || '');
-        setSelectedMood(entry?.mood || null);
+        const isDateChange = prevDateRef.current !== selectedDate;
+        if (isDateChange) {
+            prevDateRef.current = selectedDate;
+            isDirtyRef.current = false;
+            const entry = journalEntries.find(e => e.date === selectedDate);
+            setEntryContent(entry?.content || '');
+            setSelectedMood(entry?.mood || null);
+            return;
+        }
+
+        // Same date: only update if user hasn't made unsaved keystrokes on the current date
+        if (!isDirtyRef.current) {
+            const entry = journalEntries.find(e => e.date === selectedDate);
+            setEntryContent(entry?.content || '');
+            setSelectedMood(entry?.mood || null);
+        }
     }, [selectedDate, journalEntries]);
 
     // Generate past 7 days for the quick calendar strip
@@ -101,10 +117,12 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
             setJournalEntries([...journalEntries, entryData]);
         }
         setIsSaved(true);
+        isDirtyRef.current = false;
         setTimeout(() => setIsSaved(false), 2000);
     };
     
     const addPrompt = (prompt) => {
+        isDirtyRef.current = true;
         setEntryContent(prev => {
             const separator = prev.trim().length > 0 ? '\n\n' : '';
             return prev + `${separator}**${prompt}**\n`;
@@ -122,7 +140,7 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
     // Auto-populate completed daily wins into the journal entry
     const handleInsertDailyWins = () => {
         if (tasksForSelectedDate.length === 0) return;
-
+        isDirtyRef.current = true;
         const winsText = tasksForSelectedDate.map(t => `- ${t.text}`).join('\n');
         setEntryContent(prev => {
             const separator = prev.trim().length > 0 ? '\n\n' : '';
@@ -165,6 +183,7 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
                     }
                 }
                 if (transcript.trim()) {
+                    isDirtyRef.current = true;
                     setEntryContent(prev => {
                         const needsSpace = prev.length > 0 && !prev.endsWith(' ') && !prev.endsWith('\n');
                         return prev + (needsSpace ? ' ' : '') + transcript.trim();
@@ -245,7 +264,10 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
             {/* Mood Selector Row */}
             <JournalMoodSelector
                 selectedMood={selectedMood}
-                onSelectMood={setSelectedMood}
+                onSelectMood={(moodId) => {
+                    isDirtyRef.current = true;
+                    setSelectedMood(moodId);
+                }}
             />
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -281,7 +303,10 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
                     <div className="relative aura-glass rounded-2xl border border-white/10 overflow-hidden shadow-2xl">
                         <textarea 
                             value={entryContent}
-                            onChange={(e) => setEntryContent(e.target.value)}
+                            onChange={(e) => {
+                                isDirtyRef.current = true;
+                                setEntryContent(e.target.value);
+                            }}
                             placeholder={isListening ? "Listening to your voice... speak freely." : "How was your day? What thoughts are asking to be heard?"}
                             aria-label="Journal entry content"
                             className={`w-full h-80 bg-transparent text-[var(--color-text-primary)] p-5 focus:outline-none leading-relaxed text-sm sm:text-base resize-none ${

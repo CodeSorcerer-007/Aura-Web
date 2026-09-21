@@ -96,7 +96,7 @@ const ensureBuses = () => {
     }
 };
 
-const broadcastAmbientState = () => {
+const broadcastAmbientState = (reason = null) => {
     const isPlaying = sharedState.atmosphereSound !== 'off' || sharedState.frequencySound !== 'off';
     const isSuspended = isPlaying && sharedState.isSuspended;
     try {
@@ -105,7 +105,8 @@ const broadcastAmbientState = () => {
                 isPlaying,
                 isSuspended,
                 atmosphereSound: sharedState.atmosphereSound,
-                frequencySound: sharedState.frequencySound
+                frequencySound: sharedState.frequencySound,
+                reason
             }
         }));
     } catch {}
@@ -148,19 +149,37 @@ const attachUserGestureUnlock = () => {
     window.addEventListener('touchstart', unlock, { once: true, capture: true });
 };
 
-// Monitor Tone raw context state transitions (e.g., auto-suspension, tab sleep)
+// Monitor Tone raw context state transitions (e.g., auto-suspension, tab sleep, headphone disconnect)
 try {
     const rawCtx = Tone.getContext().rawContext;
     if (rawCtx) {
         rawCtx.addEventListener?.('statechange', () => {
-            const isSusp = getIsContextSuspended();
+            const isSusp = getIsContextSuspended() || rawCtx.state === 'interrupted' || rawCtx.state === 'suspended';
             if (sharedState.isSuspended !== isSusp) {
                 sharedState.isSuspended = isSusp;
                 if (isSusp && (sharedState.atmosphereSound !== 'off' || sharedState.frequencySound !== 'off')) {
                     attachUserGestureUnlock();
                 }
                 notifySubscribers();
-                broadcastAmbientState();
+                broadcastAmbientState('devicechange');
+            }
+        });
+    }
+} catch {}
+
+// Also monitor mediaDevices changes (e.g., Bluetooth headphones disconnect/sleep on Windows)
+try {
+    if (typeof navigator !== 'undefined' && navigator.mediaDevices?.addEventListener) {
+        navigator.mediaDevices.addEventListener('devicechange', () => {
+            const isPlaying = sharedState.atmosphereSound !== 'off' || sharedState.frequencySound !== 'off';
+            if (isPlaying) {
+                const isSusp = getIsContextSuspended();
+                sharedState.isSuspended = isSusp;
+                if (isSusp) {
+                    attachUserGestureUnlock();
+                }
+                notifySubscribers();
+                broadcastAmbientState('devicechange');
             }
         });
     }
@@ -168,13 +187,26 @@ try {
 
 const cleanupAtmosphereNodes = () => {
     if (atmosphereNodes) {
+        const nodesToCleanup = atmosphereNodes;
+        atmosphereNodes = null;
         try {
-            if (atmosphereNodes.stop) atmosphereNodes.stop();
-            if (atmosphereNodes.dispose) atmosphereNodes.dispose();
+            if (atmosphereGain?.gain) {
+                // Apply 50ms linear fadeout to avoid acoustic clicks on sound switching
+                atmosphereGain.gain.rampTo(0, 0.05);
+            }
+            setTimeout(() => {
+                try {
+                    if (nodesToCleanup.stop) nodesToCleanup.stop();
+                    if (nodesToCleanup.dispose) nodesToCleanup.dispose();
+                } catch (e) {
+                    console.error("Atmosphere dispose error:", e);
+                }
+            }, 55);
         } catch (e) {
             console.error("Atmosphere cleanup error:", e);
+            if (nodesToCleanup.stop) nodesToCleanup.stop();
+            if (nodesToCleanup.dispose) nodesToCleanup.dispose();
         }
-        atmosphereNodes = null;
     }
 };
 
@@ -184,13 +216,26 @@ const cleanupFrequencyNodes = () => {
         chimesInterval = null;
     }
     if (frequencyNodes) {
+        const nodesToCleanup = frequencyNodes;
+        frequencyNodes = null;
         try {
-            if (frequencyNodes.stop) frequencyNodes.stop();
-            if (frequencyNodes.dispose) frequencyNodes.dispose();
+            if (frequencyGain?.gain) {
+                // Apply 50ms linear fadeout to avoid acoustic clicks on sound switching
+                frequencyGain.gain.rampTo(0, 0.05);
+            }
+            setTimeout(() => {
+                try {
+                    if (nodesToCleanup.stop) nodesToCleanup.stop();
+                    if (nodesToCleanup.dispose) nodesToCleanup.dispose();
+                } catch (e) {
+                    console.error("Frequency dispose error:", e);
+                }
+            }, 55);
         } catch (e) {
             console.error("Frequency cleanup error:", e);
+            if (nodesToCleanup.stop) nodesToCleanup.stop();
+            if (nodesToCleanup.dispose) nodesToCleanup.dispose();
         }
-        frequencyNodes = null;
     }
 };
 
@@ -240,6 +285,11 @@ const rebuildAtmosphere = () => {
             lfo.connect(filter.frequency);
             noise.connect(filter);
             filter.connect(dest);
+            atmosphereNodes = {
+                start: () => { noise.start(); lfo.start(); },
+                stop: () => { noise.stop(); lfo.stop(); },
+                dispose: () => { noise.dispose(); filter.dispose(); lfo.dispose(); }
+            };
         } else if (type === 'campfire') {
             const baseNoise = new Tone.Noise('brown');
             const baseFilter = new Tone.Filter({ type: 'lowpass', frequency: 280, rolloff: -12 });
