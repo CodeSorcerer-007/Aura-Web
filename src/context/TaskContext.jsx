@@ -29,14 +29,26 @@ export const TaskProvider = ({ children }) => {
     const [templates, setTemplates, templatesLoaded] = usePreferences('aura-templates', []);
     const [tomorrowSeed, setTomorrowSeed] = usePreferences('aura-tomorrow-seed', null);
 
-    // Auto-remove any legacy demo data so the app remains 100% clean
+    // Auto-remove any legacy demo data once on initial hydration so the app remains 100% clean
+    const demoCleanedRef = useRef(false);
     useEffect(() => {
-        if (!tasksLoaded) return;
-        const hasDemoTasks = tasks.some(t => typeof t.id === 'string' && t.id.startsWith('demo-task-'));
-        if (hasDemoTasks) {
-            setTasks(prev => prev.filter(t => typeof t.id !== 'string' || !t.id.startsWith('demo-task-')));
+        if (!tasksLoaded || demoCleanedRef.current) return;
+        demoCleanedRef.current = true;
+        setTasks(prev => {
+            const hasDemo = prev.some(t => typeof t.id === 'string' && t.id.startsWith('demo-task-'));
+            return hasDemo ? prev.filter(t => typeof t.id !== 'string' || !t.id.startsWith('demo-task-')) : prev;
+        });
+    }, [tasksLoaded, setTasks]);
+
+    // Ensure monolith task reference is cleared if the task no longer exists or is archived
+    const { monolithTaskId, setMonolithTaskId } = settings;
+    useEffect(() => {
+        if (!tasksLoaded || !monolithTaskId) return;
+        const exists = tasks.some(t => t.id === monolithTaskId && !t.isArchived);
+        if (!exists) {
+            setMonolithTaskId(null);
         }
-    }, [tasksLoaded, tasks, setTasks]);
+    }, [tasksLoaded, tasks, monolithTaskId, setMonolithTaskId]);
 
     const allDataLoaded = tasksLoaded && templatesLoaded &&
         settings.settingsDataLoaded && groveCtx.groveDataLoaded;
@@ -129,7 +141,9 @@ export const TaskProvider = ({ children }) => {
         setTemplates,
         setGrove: groveCtx.setGrove,
         notification,
-        playSoundEffect: settings.playSoundEffect
+        playSoundEffect: settings.playSoundEffect,
+        monolithTaskId: settings.monolithTaskId,
+        setMonolithTaskId: settings.setMonolithTaskId,
     });
 
     // Modular Hook: Stats, Momentum & Grove

@@ -14,6 +14,10 @@
   --text-fluid-2xl: clamp(1.75rem, 1.5rem + 1.4vw, 2.35rem);
 }
 
+html {
+  scrollbar-gutter: stable;
+}
+
 /* Tabular numbers for clocks, timers, counters, and statistics */
 .tabular-nums, [data-tabular] {
   font-variant-numeric: tabular-nums;
@@ -39,14 +43,23 @@ body {
   border-radius: 4px;
 }
 
-/* Accessibility: Respect Reduced Motion Preference for interactive UI */
+/* Accessibility: Respect Reduced Motion Preference universally */
 @media (prefers-reduced-motion: reduce) {
-  :not(.theme-bg, .theme-bg *, .circadian-sky, .circadian-sky *, .dark-stardust, .dark-stardust *, .forest-particles *, .fireflies *, .sakura-petals *, .ocean-bubbles *, .ocean-fauna *, .cyber-code *, .crimson-mist *, .crimson-embers *) {
+  *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+  .theme-bg, .theme-bg *, .circadian-sky, .circadian-sky *, .dark-stardust *, .forest-particles *, .fireflies *, .sakura-petals *, .ocean-bubbles *, .ocean-fauna *, .cyber-code *, .crimson-mist *, .crimson-embers * {
+    animation: none !important;
+    animation-play-state: paused !important;
+  }
+}
+
+/* Battery & Thermal: Freeze background animations when tab/window is hidden */
+.theme-bg-paused, .theme-bg-paused * {
+  animation-play-state: paused !important;
 }
 
 /* Custom Sleek Scrollbar */

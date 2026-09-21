@@ -82,18 +82,19 @@ export const ReviewView = ({
         });
 
         const categoryCounts = {};
-        // Count per-category from task-level focusSessions (category label source)
-        tasks.forEach(t => {
-            if (t.focusSessions > 0) {
-                categoryCounts[t.category || 'General'] = (categoryCounts[t.category || 'General'] || 0) + t.focusSessions;
-            }
-        });
-        // Also count from history entries (richer, has category per-session)
-        focusHistory.forEach(item => {
-            if (item.category) {
-                categoryCounts[item.category] = (categoryCounts[item.category] || 0) + 1;
-            }
-        });
+        if (focusHistory.length > 0) {
+            focusHistory.forEach(item => {
+                const cat = item.category || 'General';
+                categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+            });
+        } else {
+            tasks.forEach(t => {
+                if (t.focusSessions > 0) {
+                    const cat = t.category || 'General';
+                    categoryCounts[cat] = (categoryCounts[cat] || 0) + t.focusSessions;
+                }
+            });
+        }
         const sortedCats = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
         const topCategory = sortedCats[0]?.[0] || 'General';
         const topCategoryCount = sortedCats[0]?.[1] || 0;

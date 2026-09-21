@@ -125,6 +125,12 @@ export const FlowView = ({
             <div className="mb-4">
                 <div 
                     onClick={toggleWeeklySummary}
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            toggleWeeklySummary();
+                        }
+                    }}
                     className="cursor-pointer group flex items-center justify-between p-2.5 sm:px-4 sm:py-2 rounded-2xl bg-[var(--color-bg-secondary)]/50 hover:bg-[var(--color-bg-secondary)]/80 border border-white/5 hover:border-amber-400/20 transition-all text-xs select-none"
                     role="button"
                     tabIndex={0}

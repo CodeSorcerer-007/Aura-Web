@@ -86,6 +86,13 @@ export const CommandPalette = ({ isOpen, onClose, commands = [], tasks = [], onT
         }
     };
 
+    useEffect(() => {
+        const activeEl = document.getElementById(`cmd-item-${selectedIndex}`);
+        if (typeof activeEl?.scrollIntoView === 'function') {
+            activeEl.scrollIntoView({ block: 'nearest' });
+        }
+    }, [selectedIndex]);
+
     if (!isOpen) return null;
     return (
         <motion.div 
@@ -110,19 +117,33 @@ export const CommandPalette = ({ isOpen, onClose, commands = [], tasks = [], onT
                         value={searchTerm}
                         onChange={handleSearchChange}
                         onKeyDown={handleKeyDown}
+                        role="combobox"
+                        aria-expanded="true"
+                        aria-haspopup="listbox"
+                        aria-autocomplete="list"
+                        aria-controls="command-palette-list"
+                        aria-activedescendant={combinedItems.length > 0 ? `cmd-item-${selectedIndex}` : undefined}
                         placeholder="Type a command, task title, @tag, or #category..."
                         className="w-full bg-transparent text-sm sm:text-base text-[var(--color-text-primary)] focus:outline-none placeholder:text-white/30"
                     />
                     <span className="text-[10px] text-white/30 font-mono border border-white/10 px-1.5 py-0.5 rounded">ESC</span>
                 </div>
 
-                <div className="max-h-[55vh] overflow-y-auto p-1.5 space-y-1">
+                <div 
+                    id="command-palette-list"
+                    role="listbox"
+                    aria-label="Commands and tasks"
+                    className="max-h-[55vh] overflow-y-auto p-1.5 space-y-1"
+                >
                     {combinedItems.length > 0 ? (
                         combinedItems.map((item, index) => {
                             const isSelected = selectedIndex === index;
                             return (
                                 <div 
                                     key={item.id} 
+                                    id={`cmd-item-${index}`}
+                                    role="option"
+                                    aria-selected={isSelected}
                                     onClick={item.action}
                                     className={`p-2.5 rounded-xl text-xs sm:text-sm cursor-pointer flex justify-between items-center transition-all ${
                                         isSelected 

@@ -4,10 +4,25 @@ import { motion } from 'framer-motion';
 export const DependencySelectorModal = ({ isOpen, onClose, currentTaskId, tasks, onSelect }) => {
     if (!isOpen) return null;
 
+    // Avoid circular dependencies (direct or transitive cycle detection)
+    const wouldCreateCycle = (candidateId) => {
+        const visited = new Set();
+        let curr = candidateId;
+        while (curr) {
+            if (curr === currentTaskId) return true;
+            if (visited.has(curr)) break;
+            visited.add(curr);
+            const parentTask = tasks.find(t => t.id === curr);
+            curr = parentTask?.dependsOn;
+        }
+        return false;
+    };
+
     const potentialDependencies = tasks.filter(task => 
         !task.completed && 
+        !task.isArchived &&
         task.id !== currentTaskId &&
-        task.dependsOn !== currentTaskId // Avoid circular dependencies
+        !wouldCreateCycle(task.id)
     );
 
     return (
@@ -28,8 +43,16 @@ export const DependencySelectorModal = ({ isOpen, onClose, currentTaskId, tasks,
                         potentialDependencies.map(task => (
                             <div 
                                 key={task.id} 
+                                role="button"
+                                tabIndex={0}
                                 onClick={() => onSelect(task.id)} 
-                                className="p-3 bg-[var(--color-bg)] rounded-lg cursor-pointer hover:bg-[var(--color-bg-secondary-hover)]"
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        onSelect(task.id);
+                                    }
+                                }}
+                                className="p-3 bg-[var(--color-bg)] rounded-lg cursor-pointer hover:bg-[var(--color-bg-secondary-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]"
                             >
                                 <p>{task.text}</p>
                             </div>

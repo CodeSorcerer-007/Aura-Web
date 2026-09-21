@@ -56,19 +56,27 @@ export const TaskDetailModal = ({
         }
 
         let isCancelled = false;
+        const createdUrls = [];
         const fileUrls = {};
+        const vUrls = {};
+
         const attachmentPromises = (task.attachments || []).map(async (att) => {
             const fileBlob = await getFile(att.id);
-            if (fileBlob && !isCancelled) {
-                fileUrls[att.id] = URL.createObjectURL(fileBlob);
+            if (fileBlob) {
+                if (isCancelled) return;
+                const url = URL.createObjectURL(fileBlob);
+                createdUrls.push(url);
+                fileUrls[att.id] = url;
             }
         });
 
-        const vUrls = {};
         const voicePromises = (task.voiceNotes || []).map(async (vn) => {
             const voiceBlob = await getFile(vn.id);
-            if (voiceBlob && !isCancelled) {
-                vUrls[vn.id] = URL.createObjectURL(voiceBlob);
+            if (voiceBlob) {
+                if (isCancelled) return;
+                const url = URL.createObjectURL(voiceBlob);
+                createdUrls.push(url);
+                vUrls[vn.id] = url;
             }
         });
 
@@ -76,13 +84,14 @@ export const TaskDetailModal = ({
             if (!isCancelled) {
                 setAttachmentURLs(fileUrls);
                 setVoiceURLs(vUrls);
+            } else {
+                createdUrls.forEach(URL.revokeObjectURL);
             }
         });
 
         return () => {
             isCancelled = true;
-            Object.values(fileUrls).forEach(URL.revokeObjectURL);
-            Object.values(vUrls).forEach(URL.revokeObjectURL);
+            createdUrls.forEach(URL.revokeObjectURL);
         };
     }, [task]);
 

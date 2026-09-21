@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 
 // --- Procedural Biophilic Trees with Multi-Stage Botanical Lifecycles ---
 
-export const OakTree = ({ growth }) => {
+export const OakTree = React.memo(({ growth }) => {
     const isSprout = growth <= 0.18;
     const isSapling = growth > 0.18 && growth <= 0.35;
     const isMature = growth > 0.35;
@@ -204,9 +204,9 @@ export const OakTree = ({ growth }) => {
             )}
         </svg>
     );
-};
+});
 
-export const CherryBlossom = ({ growth }) => {
+export const CherryBlossom = React.memo(({ growth }) => {
     const isSprout = growth <= 0.18;
     const isSapling = growth > 0.18 && growth <= 0.35;
     const isMature = growth > 0.35;
@@ -390,9 +390,9 @@ export const CherryBlossom = ({ growth }) => {
             )}
         </svg>
     );
-};
+});
 
-export const PineTree = ({ growth }) => {
+export const PineTree = React.memo(({ growth }) => {
     const isSprout = growth <= 0.18;
     const isSapling = growth > 0.18 && growth <= 0.35;
     const isMature = growth > 0.35;
@@ -532,14 +532,14 @@ export const PineTree = ({ growth }) => {
             )}
         </svg>
     );
-};
+});
 
-export const Tree = ({ type, growth }) => {
+export const Tree = React.memo(({ type, growth }) => {
     switch (type) {
         case 'pine': return <PineTree growth={growth} />;
         case 'cherry': return <CherryBlossom growth={growth} />;
         default: return <OakTree growth={growth} />;
     }
-};
+});
 
 export default Tree;

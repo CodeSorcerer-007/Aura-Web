@@ -8,7 +8,9 @@ export const useTaskOperations = ({
     setTemplates,
     setGrove,
     notification,
-    playSoundEffect
+    playSoundEffect,
+    monolithTaskId = null,
+    setMonolithTaskId = null
 }) => {
     // Universal Undo stack: stores previous state for 5 seconds
     const undoRef = useRef(null);
@@ -34,6 +36,9 @@ export const useTaskOperations = ({
         if (action.type === 'delete' || action.type === 'forgive') {
             const restoredTask = action.task;
             setTasks(prev => [restoredTask, ...prev.filter(t => t.id !== restoredTask.id)]);
+            if (action.wasMonolith && setMonolithTaskId) {
+                setMonolithTaskId(restoredTask.id);
+            }
             notification.setToastMessage({ type: 'success', text: '↩ Task restored!' });
         } else if (action.type === 'toggle') {
             // Revert completion state
@@ -60,9 +65,12 @@ export const useTaskOperations = ({
             notification.setToastMessage({ type: 'success', text: '↩ Status reversed!' });
         } else if (action.type === 'archive') {
             setTasks(prev => prev.map(t => t.id === action.taskId ? { ...t, isArchived: false } : t));
+            if (action.wasMonolith && setMonolithTaskId) {
+                setMonolithTaskId(action.taskId);
+            }
             notification.setToastMessage({ type: 'success', text: '↩ Task unarchived!' });
         }
-    }, [setTasks, setGrove, notification, clearUndo]);
+    }, [setTasks, setGrove, notification, clearUndo, setMonolithTaskId]);
 
     const registerUndo = useCallback((actionData, toastText, toastType = 'info') => {
         clearUndo(true); // run expiry for any previously pending action before overwriting
@@ -288,6 +296,11 @@ export const useTaskOperations = ({
             return prev.filter(task => task.id !== id);
         });
 
+        const wasMonolith = Boolean(monolithTaskId && (id === monolithTaskId || taskToDelete?.id === monolithTaskId));
+        if (wasMonolith && setMonolithTaskId) {
+            setMonolithTaskId(null);
+        }
+
         // Show toast with undo action (5-second window).
         // IMPORTANT: File deletion is intentionally deferred until AFTER the undo
         // window closes.  The previous approach deleted files immediately, which
@@ -314,13 +327,14 @@ export const useTaskOperations = ({
                 {
                     type: isForgive ? 'forgive' : 'delete',
                     task: { ...taskToDelete },
+                    wasMonolith,
                     onExpiry: () => deleteAttachedFiles(taskToDelete)
                 },
                 isForgive ? `Forgiven & released: "${taskName}" 🍃` : `Deleted: "${taskName}"`,
                 'info'
             );
         }
-    }, [setTasks, registerUndo]);
+    }, [setTasks, registerUndo, monolithTaskId, setMonolithTaskId]);
 
     const forgiveTask = useCallback((id) => {
         deleteTask(id, true);
@@ -334,6 +348,12 @@ export const useTaskOperations = ({
             taskToArchive = prev.find(t => t.id === id) ?? null;
             return prev.map(t => t.id === id ? { ...t, isArchived: true } : t);
         });
+
+        const wasMonolith = Boolean(monolithTaskId && id === monolithTaskId);
+        if (wasMonolith && setMonolithTaskId) {
+            setMonolithTaskId(null);
+        }
+
         // taskToArchive is captured by the closure at call time — because setTasks
         // with a functional updater calls the updater synchronously inside React's
         // batched update flush, taskToArchive will be populated before the next line.
@@ -342,12 +362,12 @@ export const useTaskOperations = ({
                 ? taskToArchive.text.substring(0, 25) + '…'
                 : taskToArchive.text;
             registerUndo(
-                { type: 'archive', taskId: id },
+                { type: 'archive', taskId: id, wasMonolith },
                 `Archived: "${taskName}" 📦`,
                 'info'
             );
         }
-    }, [setTasks, registerUndo]);
+    }, [setTasks, registerUndo, monolithTaskId, setMonolithTaskId]);
 
     const restoreTask = useCallback((id) => {
         setTasks(prev => prev.map(t => t.id === id ? { ...t, isArchived: false } : t));
