@@ -8,16 +8,16 @@ if %ERRORLEVEL% NEQ 0 (
     timeout /t 2 /nobreak >nul
 )
 
-:: Launch browser in borderless standalone app mode
+:: Launch browser in full screen browser mode
 where msedge >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    start msedge --app=http://localhost:4173/
+    start msedge --app=http://localhost:4173/ --start-fullscreen --start-maximized
     exit /b 0
 )
 
 where chrome >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    start chrome --app=http://localhost:4173/
+    start chrome --app=http://localhost:4173/ --start-fullscreen --start-maximized
     exit /b 0
 )
 

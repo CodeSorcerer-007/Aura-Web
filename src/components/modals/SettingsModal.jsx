@@ -31,6 +31,8 @@ export const SettingsModal = ({
     onTriggerImport,
     notificationsEnabled,
     onSetNotificationsEnabled,
+    alwaysFullScreen = true,
+    onSetAlwaysFullScreen = () => {},
     onTestShutdownReminder,
     onSaveSafetyVault,
     onRestoreSnapshot,
@@ -138,6 +140,27 @@ export const SettingsModal = ({
                                 className={`w-12 h-6 rounded-full p-1 transition-colors ${notificationsEnabled ? 'bg-[var(--color-accent)]' : 'bg-gray-500'}`}
                             >
                                 <motion.div layout className={`w-4 h-4 bg-white rounded-full ${notificationsEnabled ? 'ml-auto' : ''}`} />
+                            </button>
+                        </div>
+                        <div className="flex items-center justify-between bg-[var(--color-bg)] p-3 rounded-lg">
+                            <div>
+                                <span className="font-medium text-sm text-[var(--color-text-primary)]">Always Full Screen Mode</span>
+                                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">Automatically open and expand into full screen browser mode</p>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    const next = !alwaysFullScreen;
+                                    onSetAlwaysFullScreen(next);
+                                    if (next && !document.fullscreenElement) {
+                                        document.documentElement?.requestFullscreen?.().catch(() => {});
+                                    } else if (!next && document.fullscreenElement) {
+                                        document.exitFullscreen?.().catch(() => {});
+                                    }
+                                }} 
+                                className={`w-12 h-6 rounded-full p-1 transition-colors cursor-pointer ${alwaysFullScreen ? 'bg-[var(--color-accent)]' : 'bg-gray-500'}`}
+                                aria-label="Toggle always full screen mode"
+                            >
+                                <motion.div layout className={`w-4 h-4 bg-white rounded-full ${alwaysFullScreen ? 'ml-auto' : ''}`} />
                             </button>
                         </div>
                     </div>

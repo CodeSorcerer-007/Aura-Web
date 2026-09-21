@@ -26,9 +26,63 @@ export const SettingsProvider = ({ children }) => {
     const [notificationsEnabled, setNotificationsEnabled, notificationsLoaded] = usePreferences('aura-notifications-enabled', false);
     const [monolithTaskId, setMonolithTaskId] = usePreferences('aura-monolith-task-id', null);
     const [tunnelVision, setTunnelVision] = usePreferences('aura-tunnel-vision', false);
+    const [alwaysFullScreen, setAlwaysFullScreen, alwaysFullScreenLoaded] = usePreferences('aura-always-fullscreen', true);
+    const [isFullscreen, setIsFullscreen] = React.useState(() => {
+        if (typeof document !== 'undefined') {
+            return !!document.fullscreenElement;
+        }
+        return false;
+    });
+
+    const toggleFullScreen = useCallback(() => {
+        try {
+            if (typeof document === 'undefined') return;
+            if (!document.fullscreenElement) {
+                document.documentElement?.requestFullscreen?.().catch(() => {});
+            } else {
+                document.exitFullscreen?.().catch(() => {});
+            }
+        } catch {}
+    }, []);
+
+    // Fullscreen event listener
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const handleFsChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFsChange);
+        document.addEventListener('webkitfullscreenchange', handleFsChange);
+        handleFsChange();
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFsChange);
+            document.removeEventListener('webkitfullscreenchange', handleFsChange);
+        };
+    }, []);
+
+    // Auto-enter fullscreen if alwaysFullScreen is enabled
+    useEffect(() => {
+        if (!alwaysFullScreen || typeof document === 'undefined') return;
+
+        if (!document.fullscreenElement) {
+            // Attempt immediate request (works in trusted/PWA/standalone contexts)
+            document.documentElement?.requestFullscreen?.().catch(() => {
+                // When browser requires user gesture, trigger on first interaction
+                const enterOnFirstGesture = () => {
+                    if (!document.fullscreenElement && alwaysFullScreen) {
+                        document.documentElement?.requestFullscreen?.().catch(() => {});
+                    }
+                    window.removeEventListener('pointerdown', enterOnFirstGesture);
+                    window.removeEventListener('keydown', enterOnFirstGesture);
+                };
+                window.addEventListener('pointerdown', enterOnFirstGesture, { once: true });
+                window.addEventListener('keydown', enterOnFirstGesture, { once: true });
+            });
+        }
+    }, [alwaysFullScreen]);
 
     const settingsDataLoaded = categoriesLoaded && launchedLoaded && journalLoaded &&
-        shutdownTimeLoaded && soundEffectsLoaded && autoArchiveLoaded && notificationsLoaded;
+        shutdownTimeLoaded && soundEffectsLoaded && autoArchiveLoaded && notificationsLoaded && alwaysFullScreenLoaded;
 
     // Prune journal entries once on mount so localStorage never hits quota.
     useEffect(() => {
@@ -87,6 +141,10 @@ export const SettingsProvider = ({ children }) => {
         setMonolithTaskId,
         tunnelVision,
         setTunnelVision,
+        alwaysFullScreen,
+        setAlwaysFullScreen,
+        isFullscreen,
+        toggleFullScreen,
         playSoundEffect
     }), [
         settingsDataLoaded,
@@ -101,6 +159,8 @@ export const SettingsProvider = ({ children }) => {
         handleSetNotifications,
         monolithTaskId, setMonolithTaskId,
         tunnelVision, setTunnelVision,
+        alwaysFullScreen, setAlwaysFullScreen,
+        isFullscreen, toggleFullScreen,
         playSoundEffect
     ]);
 

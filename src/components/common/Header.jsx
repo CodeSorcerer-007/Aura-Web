@@ -8,8 +8,9 @@ import {
     ZapIcon,
     HelpCircleIcon
 } from './Icons';
-import { Headphones } from 'lucide-react';
+import { Headphones, Maximize2, Minimize2 } from 'lucide-react';
 import { InstallAppButton } from './InstallAppButton';
+import { useSettings } from '../../context/SettingsContext';
 
 export const Header = ({
     momentumProgress,
@@ -23,6 +24,8 @@ export const Header = ({
 }) => {
     const [isAmbientActive, setIsAmbientActive] = useState(false);
     const [isAudioSuspended, setIsAudioSuspended] = useState(false);
+
+    const { isFullscreen = false, toggleFullScreen = () => {} } = useSettings();
 
     useEffect(() => {
         const handleAmbientState = (e) => {
@@ -100,6 +103,18 @@ export const Header = ({
         </div>
         <div className="absolute top-0 right-0 flex items-center gap-2 sm:gap-3 wco-no-drag">
             <InstallAppButton />
+            <button 
+                onClick={toggleFullScreen} 
+                className={`p-2 rounded-xl transition-all shadow-sm cursor-pointer border ${
+                    isFullscreen 
+                        ? 'bg-amber-500/20 text-amber-300 border-amber-400/50 shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
+                        : 'bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border-white/5'
+                }`}
+                title={isFullscreen ? "Exit Fullscreen (F)" : "Enter Fullscreen (F)"}
+                aria-label={isFullscreen ? "Exit fullscreen mode" : "Enter fullscreen mode"}
+            >
+                {isFullscreen ? <Minimize2 className="w-5 h-5"/> : <Maximize2 className="w-5 h-5"/>}
+            </button>
             <button 
                 onClick={onShortcutsClick} 
                 className="p-2 rounded-xl bg-[var(--color-bg-secondary)]/40 hover:bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] border border-white/5 transition-all shadow-sm cursor-pointer"

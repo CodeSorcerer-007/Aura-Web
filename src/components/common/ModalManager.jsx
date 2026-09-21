@@ -104,7 +104,9 @@ export const ModalManager = () => {
         shutdownTime, setShutdownTime,
         soundEffectsEnabled, setSoundEffectsEnabled,
         autoArchiveEnabled, setAutoArchiveEnabled,
-        notificationsEnabled, handleSetNotifications
+        notificationsEnabled, handleSetNotifications,
+        alwaysFullScreen, setAlwaysFullScreen,
+        toggleFullScreen
     } = useSettings();
 
     const { stats, grove } = useGrove();
@@ -135,9 +137,10 @@ export const ModalManager = () => {
         { label: "Go to Grove", action: () => setCurrentView('grove'), shortcut: "3" },
         { label: "Go to Journal", action: () => setCurrentView('journal'), shortcut: "4" },
         { label: "Go to Review", action: () => setCurrentView('review'), shortcut: "5" },
+        { label: "Toggle Full Screen Mode", action: toggleFullScreen, shortcut: "F" },
         { label: "Toggle Theme: Dark", action: () => setTheme('dark'), shortcut: "" },
         { label: "Toggle Theme: Light", action: () => setTheme('light'), shortcut: "" },
-    ], [setCurrentView, setIsArchiveOpen, setIsMindfulMinuteOpen, setIsSearchOpen, setIsSettingsOpen, setIsShareSummaryOpen, setIsShortcutsOpen, setIsBrainSweepOpen, setIsHarvestCardOpen, setTheme]);
+    ], [setCurrentView, setIsArchiveOpen, setIsMindfulMinuteOpen, setIsSearchOpen, setIsSettingsOpen, setIsShareSummaryOpen, setIsShortcutsOpen, setIsBrainSweepOpen, setIsHarvestCardOpen, setTheme, toggleFullScreen]);
 
     return (
         <>
@@ -177,6 +180,8 @@ export const ModalManager = () => {
                         onTriggerImport={() => importInputRef.current?.click()}
                         notificationsEnabled={notificationsEnabled}
                         onSetNotificationsEnabled={handleSetNotifications}
+                        alwaysFullScreen={alwaysFullScreen}
+                        onSetAlwaysFullScreen={setAlwaysFullScreen}
                         onTestShutdownReminder={testShutdownReminder}
                         onSaveSafetyVault={handleSaveSafetyVault}
                         onRestoreSnapshot={restoreSnapshotById}

@@ -8,6 +8,7 @@ import { useUI } from '../context/UIContext';
 export const useKeyboardShortcuts = ({
     setCurrentView,
     setIsBrainSweepOpen,
+    toggleFullScreen,
 }) => {
     const {
         isCommandPaletteOpen, setIsCommandPaletteOpen,
@@ -77,6 +78,11 @@ export const useKeyboardShortcuts = ({
                     e.preventDefault();
                     setIsSettingsOpen(true);
                     break;
+                case 'f':
+                case 'F':
+                    e.preventDefault();
+                    toggleFullScreen?.();
+                    break;
                 case '1': setCurrentView('flow'); break;
                 case '2': setCurrentView('constellations'); break;
                 case '3': setCurrentView('grove'); break;
@@ -96,6 +102,6 @@ export const useKeyboardShortcuts = ({
         setCurrentView, setIsCommandPaletteOpen, setIsSearchOpen, setIsSettingsOpen,
         setDetailModal, setFocusTaskId, setIsMindfulMinuteOpen, setIsThemeCreatorOpen,
         setIsArchiveOpen, setIsShareSummaryOpen, setIsShortcutsOpen, setIsAmbientSoundOpen,
-        setIsBrainSweepOpen, setIsHarvestCardOpen
+        setIsBrainSweepOpen, setIsHarvestCardOpen, toggleFullScreen
     ]);
 };

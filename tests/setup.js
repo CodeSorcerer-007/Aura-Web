@@ -42,6 +42,16 @@ if (typeof window !== 'undefined') {
   if (!navigator.vibrate) {
     navigator.vibrate = () => true;
   }
+
+  // Mock Fullscreen API
+  if (typeof document !== 'undefined') {
+    if (!document.documentElement.requestFullscreen) {
+      document.documentElement.requestFullscreen = async () => {};
+    }
+    if (!document.exitFullscreen) {
+      document.exitFullscreen = async () => {};
+    }
+  }
 }
 
 // Mock SpeechRecognition

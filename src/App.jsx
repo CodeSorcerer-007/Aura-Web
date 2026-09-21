@@ -84,12 +84,13 @@ const AuraAppContent = () => {
         journalEntries, setJournalEntries,
         monolithTaskId, setMonolithTaskId,
         tunnelVision, setTunnelVision,
+        toggleFullScreen,
     } = useSettings();
 
     const { stats, grove, unlockedAchievements, focusHistory } = useGrove();
 
     // Keyboard shortcuts
-    useKeyboardShortcuts({ setCurrentView, setIsBrainSweepOpen });
+    useKeyboardShortcuts({ setCurrentView, setIsBrainSweepOpen, toggleFullScreen });
 
     const isLoading = !allDataLoaded || !themeLoaded || !customThemesLoaded;
 

@@ -22,6 +22,7 @@ export const ShortcutsModal = ({ isOpen, onClose }) => {
                 { keys: ["N"], label: "Focus task capture input" },
                 { keys: ["Ctrl", "P"], label: "Open Command Palette / Search" },
                 { keys: ["S"], label: "Open Settings" },
+                { keys: ["F"], label: "Toggle Full Screen Mode" },
                 { keys: ["?"], label: "Toggle this Shortcuts Cheatsheet" },
                 { keys: ["Esc"], label: "Close modal or cancel session" },
             ]
