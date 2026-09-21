@@ -45,7 +45,9 @@ body {
 
 /* Accessibility: Respect Reduced Motion Preference for interactive UI */
 @media (prefers-reduced-motion: reduce) {
-  :not(.theme-bg, .theme-bg *, .circadian-sky, .circadian-sky *, .dark-stardust, .dark-stardust *, .forest-particles *, .fireflies *, .sakura-petals *, .ocean-bubbles *, .ocean-fauna *, .cyber-code *, .crimson-mist *, .crimson-embers *, .nord-snow *, .dune-sand *) {
+  *:not(.theme-bg, .theme-bg *),
+  *:not(.theme-bg, .theme-bg *)::before,
+  *:not(.theme-bg, .theme-bg *)::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

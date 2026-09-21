@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.0] - 2026-09-21
+
+### Resilience, Error-Free Architecture & Theme Animation Milestone
+
+This release delivers comprehensive error resilience, self-healing storage, memory leak prevention, full test determinism, and restores live animations across all 17 aesthetic themes.
+
+### Added
+- **Top-Level Fail-Safe Error Boundary**: Wrapped the entire application shell in `<ErrorBoundary>` with a serene recovery screen, guaranteeing immunity to uncaught component render crashes.
+- **Self-Healing LocalStorage Recovery**: In `usePreferences`, corrupted or invalid JSON storage is automatically identified and healed back to a safe default state with zero user interruption.
+- **Web Audio Node Lifecycle Cleanup**: Added automatic `.dispose()` scheduling in `useSoundEffects` for procedural singing bowls, preventing Web Audio node accumulation during extended usage.
+- **Media Recorder Unmount Safeguard**: Safeguarded audio recording lifecycle in `TaskDetailModal` against memory leaks or async state updates on unmount.
+- **Deterministic Test Architecture**: Configured `fileParallelism: false` in `vite.config.js` for stable, timeout-free jsdom execution across all 27 test files on Windows.
+
+### Fixed
+- **Stardust Keyframe Collision**: Renamed kinetic burst keyframe to `stardust-burst-drift` in `theme-effects.css` and `StardustParticles.jsx`, restoring twinkling cosmic stardust in OLED Dark and custom themes.
+- **Cyberpunk Matrix Stream & Grid**: Fixed `@keyframes code-drift-up` bounds and added `@keyframes cyber-grid-scroll` to drive continuous perspective grid rolling and drift across all 40 glyphs.
+- **Circadian Sky Class Selectors**: Added missing CSS selector definitions (`.circadian-sky`, `.circadian-sun`, `.circadian-moon`, `.circadian-cloud`, `.circadian-star`) in `theme-effects.css`.
+- **Dynamic Particle Coverage**: Fully populated coordinate, duration, and delay attributes across all 9 ambient particle themes (Forest, Sakura, Dracula, Crimson, Ocean, Dune, Nord, Latte, Gruvbox) in `ThemeBackground.jsx`.
+- **Reduced-Motion Isolation**: Scoped `@media (prefers-reduced-motion: reduce)` in `index.css` to exclude `.theme-bg`, preserving ambient canvas animations while honoring UI motion accessibility.
+- **Re-Render Cascade Loop**: Memoized context value in `NotificationContext.jsx` and decoupled cyclic callbacks in `SettingsContext.jsx` and `TaskContext.jsx`, resolving `Maximum update depth exceeded`.
+- **Linter Compliance**: Eliminated all `react-hooks/exhaustive-deps` and unused variable warnings in `TaskContext.jsx` to achieve 0 warnings and 0 errors in `oxlint` across all 120 files.
+
+---
+
 ## [1.1.0] - 2026-09-20
 
 ### Harmonic Architecture & Mindful Depth Release

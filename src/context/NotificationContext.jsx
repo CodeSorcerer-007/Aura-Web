@@ -14,7 +14,7 @@
  * they are now completely isolated from notification re-renders.
  */
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useMemo } from 'react';
 
 const NotificationContext = createContext(null);
 
@@ -26,7 +26,7 @@ export const NotificationProvider = ({ children }) => {
     const [winModalTaskId, setWinModalTaskId] = useState(null);
     const [templateSuggestion, setTemplateSuggestion] = useState(null);
 
-    const value = {
+    const value = useMemo(() => ({
         toastMessage,
         setToastMessage,
         achievementToast,
@@ -39,7 +39,14 @@ export const NotificationProvider = ({ children }) => {
         setWinModalTaskId,
         templateSuggestion,
         setTemplateSuggestion,
-    };
+    }), [
+        toastMessage,
+        achievementToast,
+        assistantMessage,
+        isPlanting,
+        winModalTaskId,
+        templateSuggestion,
+    ]);
 
     return (
         <NotificationContext.Provider value={value}>

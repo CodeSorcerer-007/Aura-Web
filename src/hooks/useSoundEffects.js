@@ -56,6 +56,13 @@ export const playAcousticBowl = (fundamental = 216, duration = 3.5) => {
                 duration,
                 now
             );
+
+            // Cleanly dispose audio nodes after release envelope finishes to prevent Web Audio node accumulation
+            setTimeout(() => {
+                try {
+                    bowl.dispose();
+                } catch {}
+            }, (duration + 1.5) * 1000);
         }).catch(() => {});
     } catch {
         // Ignore audio context unlock errors

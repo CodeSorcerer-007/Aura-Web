@@ -359,18 +359,20 @@ const AuraAppContent = () => {
 
 export default function App() {
     return (
-        <UIProvider>
-            <NotificationProvider>
-                <ThemeProvider>
-                    <SettingsProvider>
-                        <GroveProvider>
-                            <TaskProvider>
-                                <AuraAppContent />
-                            </TaskProvider>
-                        </GroveProvider>
-                    </SettingsProvider>
-                </ThemeProvider>
-            </NotificationProvider>
-        </UIProvider>
+        <ErrorBoundary>
+            <UIProvider>
+                <NotificationProvider>
+                    <ThemeProvider>
+                        <SettingsProvider>
+                            <GroveProvider>
+                                <TaskProvider>
+                                    <AuraAppContent />
+                                </TaskProvider>
+                            </GroveProvider>
+                        </SettingsProvider>
+                    </ThemeProvider>
+                </NotificationProvider>
+            </UIProvider>
+        </ErrorBoundary>
     );
 }

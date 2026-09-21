@@ -40,7 +40,7 @@ export const StardustBurst = ({ active, onComplete }) => {
                         height: `${p.size}px`,
                         backgroundColor: p.color,
                         boxShadow: `0 0 8px ${p.color}`,
-                        animation: `stardust-drift ${p.duration}s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
+                        animation: `stardust-burst-drift ${p.duration}s cubic-bezier(0.2, 0.8, 0.2, 1) forwards`,
                         '--tx': `${p.tx}px`,
                         '--ty': `${p.ty}px`
                     }}

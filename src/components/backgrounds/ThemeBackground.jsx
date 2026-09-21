@@ -192,17 +192,62 @@ export const ThemeBackground = ({ theme }) => {
             {theme === 'forest' && (
                 <div className="forest-bg">
                     <div className="forest-particles">
-                        {[...Array(20)].map((_, i) => <div key={i} className="particle"></div>)}
+                        {[...Array(20)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="particle"
+                                style={{
+                                    left: `${(i * 5.1) % 96}%`,
+                                    bottom: `${(i * 3.7) % 60}%`,
+                                    width: `${2 + (i % 3) * 1.5}px`,
+                                    height: `${2 + (i % 3) * 1.5}px`,
+                                    animationDuration: `${7 + (i % 5) * 2}s`,
+                                    animationDelay: `-${(i * 0.6).toFixed(1)}s`
+                                }}
+                            />
+                        ))}
                     </div>
                     <div className="forest-trees"></div>
                     <div className="fireflies">
-                        {[...Array(15)].map((_, i) => <div key={i} className="firefly"></div>)}
+                        {[...Array(15)].map((_, i) => {
+                            const x1 = -45 + ((i * 7) % 90);
+                            const y1 = -35 + ((i * 6) % 70);
+                            const x2 = -x1;
+                            const y2 = -y1;
+                            return (
+                                <div 
+                                    key={i} 
+                                    className="firefly"
+                                    style={{
+                                        '--x-start': `${x1}vw`,
+                                        '--y-start': `${y1}vh`,
+                                        '--x-end': `${x2}vw`,
+                                        '--y-end': `${y2}vh`,
+                                        animationDuration: `${2.5 + (i % 3)}s, ${10 + (i % 5) * 2}s`,
+                                        animationDelay: `-${(i * 0.8).toFixed(1)}s`
+                                    }}
+                                />
+                            );
+                        })}
                     </div>
                 </div>
             )}
             {theme === 'sakura' && (
                 <div className="sakura-petals">
-                    {[...Array(25)].map((_, i) => <div key={i} className="petal">🌸</div>)}
+                    {[...Array(25)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="petal"
+                            style={{
+                                left: `${(i * 4.1) % 96}%`,
+                                animationDuration: `${12 + (i % 6) * 2.5}s`,
+                                animationDelay: `-${(i * 0.8).toFixed(1)}s`,
+                                fontSize: `${1.1 + (i % 4) * 0.3}rem`
+                            }}
+                        >
+                            🌸
+                        </div>
+                    ))}
                 </div>
             )}
             {theme === 'dracula' && (
@@ -211,14 +256,39 @@ export const ThemeBackground = ({ theme }) => {
                     <div className="dracula-graveyard"></div>
                     <div className="dracula-fog"></div>
                     <div className="dracula-bats">
-                        {[...Array(7)].map((_, i) => <div key={i} className="bat">🦇</div>)}
+                        {[...Array(7)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="bat"
+                                style={{
+                                    '--y-start': `${10 + ((i * 12) % 75)}vh`,
+                                    '--y-end': `${15 + ((i * 11) % 75)}vh`,
+                                    animationDuration: `${10 + (i % 4) * 2.5}s`,
+                                    animationDelay: `-${(i * 1.5).toFixed(1)}s`,
+                                    fontSize: `${0.9 + (i % 3) * 0.25}rem`
+                                }}
+                            >
+                                🦇
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
             {theme === 'cyberpunk' && (
                 <div className="cyber-code">
                     {[...Array(40)].map((_, i) => (
-                        <div key={i} className="code-char" style={{ '--char': `'${CYBER_CODE_CHARS[i % CYBER_CODE_CHARS.length]}'` }} ></div>
+                        <div 
+                            key={i} 
+                            className="code-char" 
+                            style={{ 
+                                '--char': `'${CYBER_CODE_CHARS[i % CYBER_CODE_CHARS.length]}'`,
+                                left: `${(i * 2.45) % 98}%`,
+                                animationDuration: `${5.5 + (i % 7) * 1.8}s`,
+                                animationDelay: `-${(i * 0.45).toFixed(1)}s`,
+                                fontSize: `${0.8 + (i % 4) * 0.25}rem`,
+                                opacity: 0.2 + (i % 5) * 0.16
+                            }} 
+                        />
                     ))}
                     <div className="cyber-grid"></div>
                 </div>
@@ -226,10 +296,32 @@ export const ThemeBackground = ({ theme }) => {
             {theme === 'crimson' && (
                 <div className="crimson-bg">
                     <div className="crimson-mist">
-                        {[...Array(5)].map((_, i) => <div key={i} className="mist-particle"></div>)}
+                        {[...Array(5)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="mist-particle"
+                                style={{
+                                    left: `${-50 + i * 25}%`,
+                                    animationDelay: `-${i * 4}s`,
+                                    animationDuration: `${18 + i * 3}s`
+                                }}
+                            />
+                        ))}
                     </div>
                     <div className="crimson-embers">
-                        {[...Array(20)].map((_, i) => <div key={i} className="ember"></div>)}
+                        {[...Array(24)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="ember"
+                                style={{
+                                    left: `${(i * 4.2) % 96}%`,
+                                    animationDuration: `${6 + (i % 6) * 1.8}s`,
+                                    animationDelay: `-${(i * 0.5).toFixed(1)}s`,
+                                    width: `${2.5 + (i % 3)}px`,
+                                    height: `${2.5 + (i % 3)}px`
+                                }}
+                            />
+                        ))}
                     </div>
                 </div>
             )}
@@ -237,7 +329,18 @@ export const ThemeBackground = ({ theme }) => {
                 <div className="ocean-bg">
                     <div className="ocean-caustics"></div>
                     <div className="ocean-bubbles">
-                        {[...Array(20)].map((_, i) => <div key={i} className="bubble"></div>)}
+                        {[...Array(20)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="bubble"
+                                style={{
+                                    left: `${(i * 4.9) % 96}%`,
+                                    '--size': `${5 + (i % 4) * 3}px`,
+                                    animationDuration: `${8 + (i % 5) * 2.5}s`,
+                                    animationDelay: `-${(i * 0.8).toFixed(1)}s`
+                                }}
+                            />
+                        ))}
                     </div>
                     <div className="ocean-fauna">
                         <div className="fish-group">{`><(((°>`}</div>
@@ -247,7 +350,19 @@ export const ThemeBackground = ({ theme }) => {
             )}
             {theme === 'dune' && (
                 <div className="dune-sand">
-                    {[...Array(50)].map((_, i) => <div key={i} className="sand-particle"></div>)}
+                    {[...Array(35)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="sand-particle"
+                            style={{
+                                top: `${(i * 2.8) % 94}%`,
+                                '--r-start': `${-12 + (i % 5) * 5}deg`,
+                                '--r-end': `${8 - (i % 5) * 4}deg`,
+                                animationDuration: `${3.5 + (i % 5) * 0.8}s`,
+                                animationDelay: `-${(i * 0.3).toFixed(1)}s`
+                            }}
+                        />
+                    ))}
                     <div className="dune-haze"></div>
                 </div>
             )}
@@ -268,7 +383,19 @@ export const ThemeBackground = ({ theme }) => {
                         <div className="aurora-band"></div>
                     </div>
                     <div className="nord-snow">
-                        {[...Array(50)].map((_, i) => <div key={i} className="snow-flake"></div>)}
+                        {[...Array(35)].map((_, i) => (
+                            <div 
+                                key={i} 
+                                className="snow-flake"
+                                style={{
+                                    left: `${(i * 2.8) % 96}%`,
+                                    width: `${2 + (i % 3) * 1.5}px`,
+                                    height: `${2 + (i % 3) * 1.5}px`,
+                                    animationDuration: `${7 + (i % 6) * 1.8}s`,
+                                    animationDelay: `-${(i * 0.5).toFixed(1)}s`
+                                }}
+                            />
+                        ))}
                     </div>
                 </div>
             )}
@@ -279,13 +406,45 @@ export const ThemeBackground = ({ theme }) => {
             )}
             {theme === 'latte' && (
                 <div className="latte-steam">
-                    {[...Array(10)].map((_, i) => <div key={i} className="steam-wisp"></div>)}
+                    {[...Array(8)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            className="steam-wisp"
+                            style={{
+                                left: `${(i * 12) % 80}%`,
+                                animationDuration: `${7 + (i % 4) * 2}s`,
+                                animationDelay: `-${i * 1.2}s`
+                            }}
+                        />
+                    ))}
                 </div>
             )}
             {theme === 'gruvbox' && (
                 <div className="gruvbox-gears">
                     <div className="gruvbox-grid"></div>
-                    {[...Array(5)].map((_, i) => <div key={i} className="gear">⚙️</div>)}
+                    {[
+                        { top: '12%', left: '10%', size: '4.5rem', dur: '22s', dir: 'normal' },
+                        { top: '35%', right: '8%', size: '7rem', dur: '16s', dir: 'reverse' },
+                        { bottom: '18%', left: '38%', size: '3.5rem', dur: '12s', dir: 'normal' },
+                        { top: '65%', left: '8%', size: '5rem', dur: '25s', dir: 'reverse' },
+                        { bottom: '10%', right: '25%', size: '4rem', dur: '18s', dir: 'normal' },
+                    ].map((g, i) => (
+                        <div 
+                            key={i} 
+                            className="gear"
+                            style={{
+                                top: g.top,
+                                left: g.left,
+                                right: g.right,
+                                bottom: g.bottom,
+                                fontSize: g.size,
+                                animationDuration: g.dur,
+                                animationDirection: g.dir
+                            }}
+                        >
+                            ⚙️
+                        </div>
+                    ))}
                 </div>
             )}
             {theme === 'rose_pine' && (

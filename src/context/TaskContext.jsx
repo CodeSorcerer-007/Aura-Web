@@ -19,10 +19,14 @@ const TaskContext = createContext(null);
 
 export const TaskProvider = ({ children }) => {
     const notification = useNotification();
+    const { setToastMessage } = notification;
 
     // Consume sibling contexts
     const settings = useSettings();
+    const { monolithTaskId, setMonolithTaskId, playSoundEffect, settingsDataLoaded } = settings;
+
     const groveCtx = useGrove();
+    const { groveDataLoaded } = groveCtx;
 
     // Task-specific persistent state — defaults to clean empty slate
     const [tasks, setTasks, tasksLoaded] = usePreferences('aura-tasks', []);
@@ -41,7 +45,6 @@ export const TaskProvider = ({ children }) => {
     }, [tasksLoaded, setTasks]);
 
     // Ensure monolith task reference is cleared if the task no longer exists or is archived
-    const { monolithTaskId, setMonolithTaskId } = settings;
     useEffect(() => {
         if (!tasksLoaded || !monolithTaskId) return;
         const exists = tasks.some(t => t.id === monolithTaskId && !t.isArchived);
@@ -51,7 +54,7 @@ export const TaskProvider = ({ children }) => {
     }, [tasksLoaded, tasks, monolithTaskId, setMonolithTaskId]);
 
     const allDataLoaded = tasksLoaded && templatesLoaded &&
-        settings.settingsDataLoaded && groveCtx.groveDataLoaded;
+        settingsDataLoaded && groveDataLoaded;
 
     // Plant Tomorrow's Seed helper
     const plantTomorrowSeed = useCallback((text) => {
@@ -60,12 +63,12 @@ export const TaskProvider = ({ children }) => {
         tomorrow.setDate(tomorrow.getDate() + 1);
         const tomorrowStr = tomorrow.toISOString().split('T')[0];
         setTomorrowSeed({ text: text.trim(), date: tomorrowStr });
-        settings.playSoundEffect('add');
-        notification.setToastMessage({
+        playSoundEffect('add');
+        setToastMessage({
             type: 'success',
             text: '🌱 Seed planted under night blanket. Sweet dreams.'
         });
-    }, [setTomorrowSeed, settings, notification]);
+    }, [setTomorrowSeed, playSoundEffect, setToastMessage]);
 
     // -------------------------------------------------------------------------
     // Tomorrow's Seed blossoming — including midnight cross-over fix.
@@ -106,14 +109,14 @@ export const TaskProvider = ({ children }) => {
                 isArchived: false
             };
             setTasks(prev => [seedTask, ...prev]);
-            settings.setMonolithTaskId(newTaskId);
+            setMonolithTaskId(newTaskId);
             setTomorrowSeed(null);
-            notification.setToastMessage({
+            setToastMessage({
                 type: 'success',
                 text: '🌱 Good morning! Your seed blossomed into Today\'s Monolith.'
             });
         }
-    }, [allDataLoaded, tomorrowSeed, setTasks, settings, setTomorrowSeed, notification]);
+    }, [allDataLoaded, tomorrowSeed, setTasks, setMonolithTaskId, setTomorrowSeed, setToastMessage]);
 
     useEffect(() => { seedCheckRef.current = false; }, [tomorrowSeed]);
     useEffect(() => { checkAndBlossom(); }, [checkAndBlossom]);

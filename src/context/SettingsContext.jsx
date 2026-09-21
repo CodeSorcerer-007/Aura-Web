@@ -15,7 +15,7 @@ const MAX_JOURNAL_ENTRIES = 730;
 const SettingsContext = createContext(null);
 
 export const SettingsProvider = ({ children }) => {
-    const notification = useNotification();
+    const { setToastMessage } = useNotification();
 
     const [customCategories, setCustomCategories, categoriesLoaded] = usePreferences('aura-custom-categories', {});
     const [hasLaunched, setHasLaunched, launchedLoaded] = usePreferences('aura-launched', false);
@@ -107,14 +107,14 @@ export const SettingsProvider = ({ children }) => {
         if (enabled && 'Notification' in window && Notification.permission !== 'granted') {
             const permission = await Notification.requestPermission();
             if (permission === 'granted') {
-                notification.setToastMessage({ type: 'success', text: 'Notifications enabled!' });
+                setToastMessage({ type: 'success', text: 'Notifications enabled!' });
                 setNotificationsEnabled(true);
             } else {
-                notification.setToastMessage({ type: 'error', text: 'Notifications were denied.' });
+                setToastMessage({ type: 'error', text: 'Notifications were denied.' });
                 setNotificationsEnabled(false);
             }
         }
-    }, [setNotificationsEnabled, notification]);
+    }, [setNotificationsEnabled, setToastMessage]);
 
     // Memoize to prevent all SettingsContext consumers from re-rendering when
     // unrelated state (e.g. tasks in a sibling context) triggers a provider

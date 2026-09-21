@@ -69,7 +69,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: './tests/setup.js',
-    // The worker process needs extra heap because 23 jsdom environments are
+    fileParallelism: false,
+    // The worker process needs extra heap because 27 jsdom environments are
     // created across the test suite.  forkOptions passes Node flags directly
     // to each worker child process.
     forkOptions: {

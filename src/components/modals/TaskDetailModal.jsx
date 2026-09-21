@@ -99,6 +99,12 @@ export const TaskDetailModal = ({
     useEffect(() => {
         return () => {
             if (recordTimerRef.current) clearInterval(recordTimerRef.current);
+            if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                try {
+                    mediaRecorderRef.current.onstop = null;
+                    mediaRecorderRef.current.stop();
+                } catch {}
+            }
             if (audioStreamRef.current) {
                 audioStreamRef.current.getTracks().forEach(track => track.stop());
             }

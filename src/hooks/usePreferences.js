@@ -31,6 +31,12 @@ export const usePreferences = (key, initialValue) => {
             }
         } catch (e) {
             console.error(`[usePreferences] Error reading "${key}" from localStorage:`, e);
+            // Self-healing: heal corrupted data with safe initialValue so the app never stays broken
+            try {
+                if (typeof window !== 'undefined') {
+                    window.localStorage.setItem(key, JSON.stringify(initialValue));
+                }
+            } catch {}
         }
         return initialValue;
     });
