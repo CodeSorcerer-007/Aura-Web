@@ -73,7 +73,7 @@ export const playAcousticBowl = (fundamental = 216, duration = 3.5) => {
  * Play a progressive pentatonic chime on task completion.
  * Successive completions within 6.5s ascend the scale degrees!
  */
-export const playTaskCompletionSound = (isMonolith = false) => {
+const playTaskCompletionSound = (isMonolith = false) => {
     try {
         Tone.start().then(() => {
             const now = Tone.now();
@@ -118,14 +118,14 @@ export const playTaskCompletionSound = (isMonolith = false) => {
 /**
  * Play seed planting resonance: deep grounding bronze singing bowl
  */
-export const playSeedPlantSound = () => {
+const playSeedPlantSound = () => {
     playAcousticBowl(108, 4.0); // Grounding 108 Hz
 };
 
 /**
  * Play subtle organic woodblock / pebble drop on task creation or drag-drop
  */
-export const playPebbleDropSound = () => {
+const playPebbleDropSound = () => {
     try {
         Tone.start().then(() => {
             const now = Tone.now();
@@ -139,7 +139,7 @@ export const playPebbleDropSound = () => {
  * Play harmonic pentatonic progression on subtask check
  * Ascends through pentatonic scale, finishing with singing bowl on all completed
  */
-export const playSubtaskProgressionSound = (completedCount = 1, totalCount = 1, isChecked = true) => {
+const playSubtaskProgressionSound = (completedCount = 1, totalCount = 1, isChecked = true) => {
     if (!isChecked) {
         playPebbleDropSound();
         return;

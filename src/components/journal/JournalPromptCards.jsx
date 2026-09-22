@@ -1,7 +1,7 @@
 import React from 'react';
 import { SparklesIcon } from '../common/Icons';
 
-export const JOURNAL_PROMPTS = [
+const JOURNAL_PROMPTS = [
     "What went well today?",
     "What am I grateful for?",
     "What was the biggest challenge?",

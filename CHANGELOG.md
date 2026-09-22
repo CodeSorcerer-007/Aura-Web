@@ -19,6 +19,7 @@ This release resolves the task completion double-click and fullscreen hijacking 
 - **Keyboard Task Reordering**: Added accessible keyboard shortcuts (<kbd>Alt</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd> to reorder within a section; <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd> to move between time sections).
 - **Timezone Drift in Blossoming & Journal**: Replaced UTC `.toISOString().split('T')[0]` conversions with local date helpers (`formatLocalDate`, `getTodayDateString`) across `TaskContext`, `JournalView`, `useStatsAndGrove`, `snapshotVault`, and `ReviewView`, preventing premature blossoming and missing journal victory entries across positive UTC offsets.
 - **Hook Dependency Stabilization**: Decoupled `notification` object identity in `useRitualsAndNotifications` and `useStatsAndGrove`, eliminating re-render depth warnings and maintaining 0 lint warnings across 120 files.
+- **Dead & Unused Code Cleanup**: Purged 2.05 MB of unreferenced assets (`src/assets/`, root `Aura_logo.png`), deleted unused components (`TaskCardSkeleton`, `ConfirmationModal`), removed dead CSS rules (`.aura-skeleton`, `@keyframes shimmer`, `@keyframes fadeInScale`, `@keyframes pulseGlow`), and trimmed 7 unused icon exports.
 
 ---
 
