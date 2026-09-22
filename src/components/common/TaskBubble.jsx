@@ -29,7 +29,7 @@ export const TaskBubble = ({
     onTogglePin,
     onArchive,
     onMoveTaskToSection,
-    dragControls
+    onReorderTaskWithinSection
 }) => {
     const [isBursting, setIsBursting] = useState(false);
 
@@ -55,7 +55,10 @@ export const TaskBubble = ({
     }, [task.completed, task.priority, color.glowColor]);
 
     const handleToggleClick = (e) => {
-        if (e) e.stopPropagation();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (isLocked) return;
 
         if (!task.completed) {
@@ -141,7 +144,7 @@ export const TaskBubble = ({
                     <div
                         draggable={!task.completed}
                         onDragStart={(e) => {
-                            e.dataTransfer.setData('text/plain', task.id);
+                            e.dataTransfer.setData('text/plain', JSON.stringify({ taskId: task.id, timeOfDay: task.timeOfDay }));
                             e.dataTransfer.effectAllowed = 'move';
                             try {
                                 announceToScreenReader(`Picked up task: ${task.text}`);
@@ -149,29 +152,46 @@ export const TaskBubble = ({
                         }}
                         onPointerDown={(e) => {
                             e.stopPropagation();
-                            dragControls?.start(e);
                         }}
                         onKeyDown={(e) => {
-                            if (e.altKey && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) {
-                                e.preventDefault();
-                                const sectionOrder = ['morning', 'afternoon', 'evening'];
-                                const currentIdx = sectionOrder.indexOf(task.timeOfDay || 'morning');
-                                if (e.key === 'ArrowRight' && currentIdx < sectionOrder.length - 1) {
-                                    const nextSec = sectionOrder[currentIdx + 1];
-                                    onMoveTaskToSection?.(task.id, nextSec);
-                                    announceToScreenReader(`Moved "${task.text}" to ${nextSec}`);
-                                } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
-                                    const prevSec = sectionOrder[currentIdx - 1];
-                                    onMoveTaskToSection?.(task.id, prevSec);
-                                    announceToScreenReader(`Moved "${task.text}" to ${prevSec}`);
+                            if (e.altKey) {
+                                if (e.key === 'ArrowUp') {
+                                    e.preventDefault();
+                                    onReorderTaskWithinSection?.(task.id, 'up');
+                                    try {
+                                        announceToScreenReader(`Moved "${task.text}" up`);
+                                    } catch {}
+                                } else if (e.key === 'ArrowDown') {
+                                    e.preventDefault();
+                                    onReorderTaskWithinSection?.(task.id, 'down');
+                                    try {
+                                        announceToScreenReader(`Moved "${task.text}" down`);
+                                    } catch {}
+                                } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                                    e.preventDefault();
+                                    const sectionOrder = ['morning', 'afternoon', 'evening'];
+                                    const currentIdx = sectionOrder.indexOf(task.timeOfDay || 'morning');
+                                    if (e.key === 'ArrowRight' && currentIdx < sectionOrder.length - 1) {
+                                        const nextSec = sectionOrder[currentIdx + 1];
+                                        onMoveTaskToSection?.(task.id, nextSec);
+                                        try {
+                                            announceToScreenReader(`Moved "${task.text}" to ${nextSec}`);
+                                        } catch {}
+                                    } else if (e.key === 'ArrowLeft' && currentIdx > 0) {
+                                        const prevSec = sectionOrder[currentIdx - 1];
+                                        onMoveTaskToSection?.(task.id, prevSec);
+                                        try {
+                                            announceToScreenReader(`Moved "${task.text}" to ${prevSec}`);
+                                        } catch {}
+                                    }
                                 }
                             }
                         }}
                         tabIndex={0}
                         style={{ touchAction: 'none' }}
                         className="flex items-center text-[var(--color-text-primary)]/30 hover:text-[var(--color-text-primary)] cursor-grab active:cursor-grabbing p-1.5 -m-1.5 rounded-lg hover:bg-white/10 transition-colors flex-shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-teal-400"
-                        title="Drag to reorder, or press Alt+Arrow Left/Right to move between Morning/Afternoon/Evening"
-                        aria-label={`Drag handle for ${task.text}. Press Alt+Arrow Right or Left to move between time sections.`}
+                        title="Drag to order tasks, or press Alt+Up/Down to reorder, Alt+Left/Right to move sections"
+                        aria-label={`Drag handle for ${task.text}. Drag to reorder between tasks, or press Alt+Up/Down to reorder, Alt+Left/Right to move sections.`}
                     >
                         <GripVertical className="w-4 h-4 pointer-events-none" />
                     </div>

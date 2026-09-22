@@ -26,7 +26,7 @@ export const SettingsProvider = ({ children }) => {
     const [notificationsEnabled, setNotificationsEnabled, notificationsLoaded] = usePreferences('aura-notifications-enabled', false);
     const [monolithTaskId, setMonolithTaskId] = usePreferences('aura-monolith-task-id', null);
     const [tunnelVision, setTunnelVision] = usePreferences('aura-tunnel-vision', false);
-    const [alwaysFullScreen, setAlwaysFullScreen, alwaysFullScreenLoaded] = usePreferences('aura-always-fullscreen', true);
+    const [alwaysFullScreen, setAlwaysFullScreen, alwaysFullScreenLoaded] = usePreferences('aura-always-fullscreen', false);
     const [isFullscreen, setIsFullscreen] = React.useState(() => {
         if (typeof document !== 'undefined') {
             return !!document.fullscreenElement;
@@ -60,24 +60,13 @@ export const SettingsProvider = ({ children }) => {
         };
     }, []);
 
-    // Auto-enter fullscreen if alwaysFullScreen is enabled
+    // Auto-enter fullscreen if alwaysFullScreen is enabled (without invasive window listeners)
     useEffect(() => {
-        if (!alwaysFullScreen || typeof document === 'undefined') return;
-
-        if (!document.fullscreenElement) {
-            // Attempt immediate request (works in trusted/PWA/standalone contexts)
-            document.documentElement?.requestFullscreen?.().catch(() => {
-                // When browser requires user gesture, trigger on first interaction
-                const enterOnFirstGesture = () => {
-                    if (!document.fullscreenElement && alwaysFullScreen) {
-                        document.documentElement?.requestFullscreen?.().catch(() => {});
-                    }
-                    window.removeEventListener('pointerdown', enterOnFirstGesture);
-                    window.removeEventListener('keydown', enterOnFirstGesture);
-                };
-                window.addEventListener('pointerdown', enterOnFirstGesture, { once: true });
-                window.addEventListener('keydown', enterOnFirstGesture, { once: true });
-            });
+        if (typeof document === 'undefined') return;
+        if (alwaysFullScreen && !document.fullscreenElement) {
+            document.documentElement?.requestFullscreen?.().catch(() => {});
+        } else if (!alwaysFullScreen && document.fullscreenElement) {
+            document.exitFullscreen?.().catch(() => {});
         }
     }, [alwaysFullScreen]);
 

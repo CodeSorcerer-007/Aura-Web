@@ -467,3 +467,43 @@ describe('reorderSectionTasks', () => {
         expect(result.current.tasks[2].id).toBe('r3'); // untouched
     });
 });
+
+describe('reorderTaskToPosition', () => {
+    it('moves a task before a target task', () => {
+        const t1 = makeTask({ id: 't1', text: 'Task 1' });
+        const t2 = makeTask({ id: 't2', text: 'Task 2' });
+        const t3 = makeTask({ id: 't3', text: 'Task 3' });
+        const { result } = renderHook(() => useTestHarness([t1, t2, t3]));
+
+        act(() => result.current.ops.reorderTaskToPosition('t3', 't1', 'before'));
+
+        expect(result.current.tasks.map(t => t.id)).toEqual(['t3', 't1', 't2']);
+    });
+
+    it('moves a task after a target task and updates its section', () => {
+        const t1 = makeTask({ id: 't1', text: 'Task 1', timeOfDay: 'morning' });
+        const t2 = makeTask({ id: 't2', text: 'Task 2', timeOfDay: 'morning' });
+        const t3 = makeTask({ id: 't3', text: 'Task 3', timeOfDay: 'afternoon' });
+        const { result } = renderHook(() => useTestHarness([t1, t2, t3]));
+
+        act(() => result.current.ops.reorderTaskToPosition('t3', 't1', 'after', 'morning'));
+
+        expect(result.current.tasks.map(t => t.id)).toEqual(['t1', 't3', 't2']);
+        expect(result.current.tasks.find(t => t.id === 't3').timeOfDay).toBe('morning');
+    });
+});
+
+describe('reorderTaskWithinSection', () => {
+    it('moves task up and down within its section', () => {
+        const t1 = makeTask({ id: 's1', text: 'One', timeOfDay: 'morning' });
+        const t2 = makeTask({ id: 's2', text: 'Two', timeOfDay: 'morning' });
+        const t3 = makeTask({ id: 's3', text: 'Three', timeOfDay: 'morning' });
+        const { result } = renderHook(() => useTestHarness([t1, t2, t3]));
+
+        act(() => result.current.ops.reorderTaskWithinSection('s2', 'up'));
+        expect(result.current.tasks.map(t => t.id)).toEqual(['s2', 's1', 's3']);
+
+        act(() => result.current.ops.reorderTaskWithinSection('s2', 'down'));
+        expect(result.current.tasks.map(t => t.id)).toEqual(['s1', 's2', 's3']);
+    });
+});

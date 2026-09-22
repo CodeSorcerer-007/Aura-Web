@@ -12,10 +12,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import React from 'react';
 import { useRitualsAndNotifications } from '../src/hooks/useRitualsAndNotifications';
+import { getTodayDateString } from '../src/utils/dateUtils';
 
 // ─── date helpers ─────────────────────────────────────────────────────────────
 
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = getTodayDateString();
 
 // ─── minimal harness ─────────────────────────────────────────────────────────
 

@@ -6,6 +6,7 @@ import {
     getAllStoredAttachments,
     putAllAttachments
 } from './db';
+import { getTodayDateString } from './dateUtils';
 
 const SNAPSHOTS_META_KEY = 'aura-snapshots-meta';
 const LEGACY_SNAPSHOTS_KEY = 'aura-rolling-snapshots';
@@ -65,7 +66,7 @@ export const recordDailySnapshot = async (payload) => {
     try {
         if (typeof window === 'undefined' || !payload) return;
 
-        const todayDate = new Date().toISOString().split('T')[0];
+        const todayDate = getTodayDateString();
         const taskCount = Array.isArray(payload.tasks) ? payload.tasks.length : 0;
         const completedCount = Array.isArray(payload.tasks) ? payload.tasks.filter(t => t.completed).length : 0;
         const groveCount = Array.isArray(payload.grove) ? payload.grove.length : 0;
@@ -148,7 +149,7 @@ export const getSnapshotDataById = async (snapshotId) => {
  * Export complete safety vault directly to local disk using File System Access API (with attachments bundled!)
  */
 export const exportSafetyVaultToFile = async (payload) => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayDateString();
     const defaultFilename = `aura-safety-vault-${today}.json`;
 
     // Losslessly bundle all attachments & voice memos from IndexedDB

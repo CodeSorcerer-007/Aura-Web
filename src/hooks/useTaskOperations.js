@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react';
-import { parseIntelligentDeadline, getTodayDateString } from '../utils/dateUtils';
+import { parseIntelligentDeadline, getTodayDateString, formatLocalDate } from '../utils/dateUtils';
 import { setFile, deleteFile } from '../utils/db';
 
 export const useTaskOperations = ({
@@ -221,7 +221,7 @@ export const useTaskOperations = ({
                         if (t.recurring.type === 'daily') nextDate.setDate(nextDate.getDate() + 1);
                         if (t.recurring.type === 'weekly') nextDate.setDate(nextDate.getDate() + 7);
                         if (t.recurring.type === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1);
-                        return { ...t, deadline: nextDate.toISOString().split('T')[0] };
+                        return { ...t, deadline: formatLocalDate(nextDate) };
                     }
                     return { ...t, completed: !t.completed, completionDate: t.completed ? null : getTodayDateString() };
                 }
@@ -534,6 +534,69 @@ export const useTaskOperations = ({
         });
     }, [setTasks]);
 
+    const reorderTaskToPosition = useCallback((draggedTaskId, targetTaskId, position = 'before', targetSection = null) => {
+        if (!draggedTaskId || !targetTaskId || draggedTaskId === targetTaskId) return;
+
+        setTasks(prevTasks => {
+            const draggedIndex = prevTasks.findIndex(t => t.id === draggedTaskId);
+            if (draggedIndex === -1) return prevTasks;
+
+            const draggedTask = prevTasks[draggedIndex];
+            const withoutDragged = prevTasks.filter(t => t.id !== draggedTaskId);
+
+            const targetIndex = withoutDragged.findIndex(t => t.id === targetTaskId);
+            if (targetIndex === -1) return prevTasks;
+
+            const updatedDraggedTask = targetSection
+                ? { ...draggedTask, timeOfDay: targetSection }
+                : draggedTask;
+
+            const insertIndex = position === 'after' ? targetIndex + 1 : targetIndex;
+            const newTasks = [...withoutDragged];
+            newTasks.splice(insertIndex, 0, updatedDraggedTask);
+
+            return newTasks;
+        });
+
+        if (playSoundEffect) {
+            playSoundEffect('add');
+        }
+    }, [setTasks, playSoundEffect]);
+
+    const reorderTaskWithinSection = useCallback((taskId, direction) => {
+        if (!taskId || (direction !== 'up' && direction !== 'down')) return;
+
+        setTasks(prevTasks => {
+            const currentTask = prevTasks.find(t => t.id === taskId);
+            if (!currentTask) return prevTasks;
+
+            const sectionTasks = prevTasks.filter(t => 
+                !t.completed && 
+                !t.isArchived && 
+                t.timeOfDay === currentTask.timeOfDay && 
+                Boolean(t.isPinned) === Boolean(currentTask.isPinned)
+            );
+            const index = sectionTasks.findIndex(t => t.id === taskId);
+            if (index === -1) return prevTasks;
+
+            const targetIndex = direction === 'up' ? index - 1 : index + 1;
+            if (targetIndex < 0 || targetIndex >= sectionTasks.length) return prevTasks;
+
+            const targetTask = sectionTasks[targetIndex];
+            const withoutCurrent = prevTasks.filter(t => t.id !== taskId);
+            const newTargetIndex = withoutCurrent.findIndex(t => t.id === targetTask.id);
+            const insertIndex = direction === 'up' ? newTargetIndex : newTargetIndex + 1;
+
+            const newTasks = [...withoutCurrent];
+            newTasks.splice(insertIndex, 0, currentTask);
+            return newTasks;
+        });
+
+        if (playSoundEffect) {
+            playSoundEffect('add');
+        }
+    }, [setTasks, playSoundEffect]);
+
     return {
         addTask,
         toggleTask,
@@ -552,6 +615,8 @@ export const useTaskOperations = ({
         saveTemplate,
         reorderTask,
         reorderSectionTasks,
+        reorderTaskToPosition,
+        reorderTaskWithinSection,
         moveTaskToSection,
         toggleSubtask,
         undoDelete: performUndo,

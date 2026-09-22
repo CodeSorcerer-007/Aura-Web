@@ -133,7 +133,14 @@ export const JournalView = ({ journalEntries = [], setJournalEntries, completedT
     const tasksForSelectedDate = useMemo(() => {
         return completedTasks.filter(t => {
             if (!t.completionDate) return false;
-            return t.completionDate === selectedDate || t.completionDate.startsWith(selectedDate);
+            if (t.completionDate === selectedDate || t.completionDate.startsWith(selectedDate)) return true;
+            try {
+                const parsed = new Date(t.completionDate);
+                if (!isNaN(parsed.getTime())) {
+                    return formatLocalDate(parsed) === selectedDate;
+                }
+            } catch {}
+            return false;
         });
     }, [completedTasks, selectedDate]);
 

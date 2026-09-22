@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { formatLocalDate } from '../../utils/dateUtils';
 import { ProductivityHeatmap } from './ProductivityHeatmap';
 import { ReviewStatsCards } from '../review/ReviewStatsCards';
 import { FocusAnalyticsPanel } from '../review/FocusAnalyticsPanel';
@@ -114,11 +115,11 @@ export const ReviewView = ({
 
         let streak = 0;
         let tempDate = new Date();
-        const hasToday = focusDates.has(tempDate.toISOString().split('T')[0]);
+        const hasToday = focusDates.has(formatLocalDate(tempDate));
         if (!hasToday) {
             tempDate.setDate(tempDate.getDate() - 1);
         }
-        while (focusDates.has(tempDate.toISOString().split('T')[0])) {
+        while (focusDates.has(formatLocalDate(tempDate))) {
             streak++;
             tempDate.setDate(tempDate.getDate() - 1);
         }

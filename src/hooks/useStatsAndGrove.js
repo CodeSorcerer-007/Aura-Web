@@ -1,5 +1,5 @@
 import { useEffect, useRef, useMemo, useCallback } from 'react';
-import { getTodayDateString } from '../utils/dateUtils';
+import { getTodayDateString, formatLocalDate } from '../utils/dateUtils';
 import { achievementsList } from '../utils/constants';
 
 export const useStatsAndGrove = ({
@@ -24,6 +24,9 @@ export const useStatsAndGrove = ({
     toggleTask,
     notification
 }) => {
+    const setAchievementToast = notification?.setAchievementToast;
+    const setIsPlanting = notification?.setIsPlanting;
+
     // Auto Archive & Streak Updates on Day Change
     useEffect(() => {
         if (!allDataLoaded) return;
@@ -36,7 +39,7 @@ export const useStatsAndGrove = ({
             if (autoArchiveEnabled) {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const yesterdayStr = formatLocalDate(yesterday);
                 setTasks(currentTasks =>
                     currentTasks.map(t => (t.completionDate === yesterdayStr ? { ...t, isArchived: true } : t))
                 );
@@ -45,7 +48,7 @@ export const useStatsAndGrove = ({
             if (tasksCompletedToday) {
                 const yesterday = new Date();
                 yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                const yesterdayStr = formatLocalDate(yesterday);
 
                 if (lastActive === yesterdayStr) {
                     setStats(prev => ({ ...prev, streak: prev.streak + 1, lastActiveDate: today }));
@@ -67,18 +70,18 @@ export const useStatsAndGrove = ({
         for (const achievement of achievementsList) {
             if (!unlockedAchievements.includes(achievement.id) && achievement.check(tasks, stats, grove)) {
                 setUnlockedAchievements(prev => [...prev, achievement.id]);
-                notification.setAchievementToast(achievement);
+                setAchievementToast?.(achievement);
                 playSoundEffect('achievement');
                 // Clear any running dismiss timer before setting a new one so
                 // multiple back-to-back unlocks don't race each other.
                 if (achievementTimerRef.current) clearTimeout(achievementTimerRef.current);
                 achievementTimerRef.current = setTimeout(() => {
-                    notification.setAchievementToast(null);
+                    setAchievementToast?.(null);
                     achievementTimerRef.current = null;
                 }, 4000);
             }
         }
-    }, [tasks, stats, grove, unlockedAchievements, allDataLoaded, playSoundEffect, notification, setUnlockedAchievements]);
+    }, [tasks, stats, grove, unlockedAchievements, allDataLoaded, playSoundEffect, setAchievementToast, setUnlockedAchievements]);
 
     // Clean up on unmount
     useEffect(() => {
@@ -110,9 +113,9 @@ export const useStatsAndGrove = ({
     const handlePlantSeed = useCallback(() => {
         if (stats.goldenSeeds > 0) {
             setStats(prev => ({ ...prev, goldenSeeds: prev.goldenSeeds - 1 }));
-            notification.setIsPlanting(true);
+            setIsPlanting?.(true);
         }
-    }, [stats.goldenSeeds, setStats, notification]);
+    }, [stats.goldenSeeds, setStats, setIsPlanting]);
 
     const finishPlanting = useCallback(() => {
         const unlockedTrees = ['oak'];
@@ -121,8 +124,8 @@ export const useStatsAndGrove = ({
         const randomType = unlockedTrees[Math.floor(Math.random() * unlockedTrees.length)];
 
         setGrove(prev => [...prev, { id: Date.now(), growthPoints: 0, maxGrowth: 10, type: randomType }]);
-        notification.setIsPlanting(false);
-    }, [unlockedAchievements, setGrove, notification]);
+        setIsPlanting?.(false);
+    }, [unlockedAchievements, setGrove, setIsPlanting]);
 
     // Fix 2: handleFocusComplete now writes to React state (setFocusHistory) instead
     // of directly to localStorage, eliminating the dual-write drift that caused

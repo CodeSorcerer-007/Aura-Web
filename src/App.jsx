@@ -70,6 +70,8 @@ const AuraAppContent = () => {
         saveTemplate,
         reorderTask,
         reorderSectionTasks,
+        reorderTaskToPosition,
+        reorderTaskWithinSection,
         toggleSubtask,
         handlePlantSeed,
         shutdownRitual,
@@ -276,6 +278,8 @@ const AuraAppContent = () => {
                                             setActiveFilter={setActiveFilter}
                                             onReorder={reorderTask}
                                             onReorderSectionTasks={reorderSectionTasks}
+                                            onReorderTaskToPosition={reorderTaskToPosition}
+                                            onReorderTaskWithinSection={reorderTaskWithinSection}
                                             onToggleSubtask={toggleSubtask}
                                             allTasks={tasks}
                                             allCategories={allCategories}

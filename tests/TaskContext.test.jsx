@@ -34,13 +34,15 @@ vi.mock('../src/utils/snapshotVault', () => ({
     exportSafetyVaultToFile: vi.fn(async () => ({ success: true })),
 }));
 
+import { formatLocalDate, getTodayDateString } from '../src/utils/dateUtils';
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-const TODAY = new Date().toISOString().split('T')[0];
+const TODAY = getTodayDateString();
 const yesterday = () => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().split('T')[0];
+    return formatLocalDate(d);
 };
 
 // ─── context wrapper ─────────────────────────────────────────────────────────
@@ -118,7 +120,7 @@ describe('Tomorrow\'s Seed blossoming', () => {
     it('does NOT blossom a seed whose date is in the future', async () => {
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = formatLocalDate(tomorrow);
 
         localStorage.setItem('aura-tomorrow-seed', JSON.stringify({ text: 'Future task', date: tomorrowStr }));
         localStorage.setItem('aura-tasks', JSON.stringify([]));
@@ -150,7 +152,7 @@ describe('Tomorrow\'s Seed blossoming', () => {
 
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = formatLocalDate(tomorrow);
 
         expect(result.current.tomorrowSeed).toEqual({ text: 'Read 20 pages', date: tomorrowStr });
     });

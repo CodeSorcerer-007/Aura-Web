@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useMemo, useCallback, useEffect, useRef } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
 import { motivationalQuotes } from '../utils/constants';
-import { getTodayDateString } from '../utils/dateUtils';
+import { getTodayDateString, formatLocalDate } from '../utils/dateUtils';
 import { useNotification } from './NotificationContext';
 import { useSettings } from './SettingsContext';
 import { useGrove } from './GroveContext';
@@ -61,7 +61,7 @@ export const TaskProvider = ({ children }) => {
         if (!text || !text.trim()) return;
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
+        const tomorrowStr = formatLocalDate(tomorrow);
         setTomorrowSeed({ text: text.trim(), date: tomorrowStr });
         playSoundEffect('add');
         setToastMessage({

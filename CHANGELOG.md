@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.2.1] - 2026-09-23
+
+### Task Interaction & Drag-and-Drop Polish Release
+
+This release resolves the task completion double-click and fullscreen hijacking issue, introduces flexible native drag-and-drop reordering between tasks, and audits timezone handling for daily rituals and journals.
+
+### Fixed
+- **Single-Click Task Completion**: Resolved bug where clicking the task completion circle triggered fullscreen mode and swallowed the first click event. Disabled `alwaysFullScreen` by default and removed global window pointerdown hijacking.
+- **Drag & Drop Reordering Between Tasks**: Replaced conflicting Framer Motion drag gestures with native HTML5 drag-and-drop equipped with bounding client rect midpoint detection (`before` / `after`), dynamic luminous insertion lines, cross-section movement, and smooth layout transitions.
+- **Keyboard Task Reordering**: Added accessible keyboard shortcuts (<kbd>Alt</kbd> + <kbd>↑</kbd>/<kbd>↓</kbd> to reorder within a section; <kbd>Alt</kbd> + <kbd>←</kbd>/<kbd>→</kbd> to move between time sections).
+- **Timezone Drift in Blossoming & Journal**: Replaced UTC `.toISOString().split('T')[0]` conversions with local date helpers (`formatLocalDate`, `getTodayDateString`) across `TaskContext`, `JournalView`, `useStatsAndGrove`, `snapshotVault`, and `ReviewView`, preventing premature blossoming and missing journal victory entries across positive UTC offsets.
+- **Hook Dependency Stabilization**: Decoupled `notification` object identity in `useRitualsAndNotifications` and `useStatsAndGrove`, eliminating re-render depth warnings and maintaining 0 lint warnings across 120 files.
+
+---
+
 ## [1.2.0] - 2026-09-21
 
 ### Resilience, Error-Free Architecture & Theme Animation Milestone

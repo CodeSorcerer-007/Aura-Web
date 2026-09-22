@@ -31,7 +31,7 @@ export const SettingsModal = ({
     onTriggerImport,
     notificationsEnabled,
     onSetNotificationsEnabled,
-    alwaysFullScreen = true,
+    alwaysFullScreen = false,
     onSetAlwaysFullScreen = () => {},
     onTestShutdownReminder,
     onSaveSafetyVault,

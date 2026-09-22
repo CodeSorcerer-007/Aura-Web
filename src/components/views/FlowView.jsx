@@ -32,6 +32,8 @@ export const FlowView = ({
     setTunnelVision,
     moveTaskToSection,
     onReorderSectionTasks,
+    onReorderTaskToPosition,
+    onReorderTaskWithinSection,
     stats,
     // Fix 2: receive focusHistory as a prop instead of reading localStorage directly
     focusHistory = [],
@@ -321,6 +323,8 @@ export const FlowView = ({
                         tasks={pinnedTasks} 
                         onMoveTaskToSection={moveTaskToSection}
                         onReorderTasks={onReorderSectionTasks}
+                        onReorderTaskToPosition={onReorderTaskToPosition}
+                        onReorderTaskWithinSection={onReorderTaskWithinSection}
                         {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                     />
                 )}
@@ -332,6 +336,8 @@ export const FlowView = ({
                     tasks={morningTasks} 
                     onMoveTaskToSection={moveTaskToSection}
                     onReorderTasks={onReorderSectionTasks}
+                    onReorderTaskToPosition={onReorderTaskToPosition}
+                    onReorderTaskWithinSection={onReorderTaskWithinSection}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 <TimeSection 
@@ -342,6 +348,8 @@ export const FlowView = ({
                     tasks={afternoonTasks} 
                     onMoveTaskToSection={moveTaskToSection}
                     onReorderTasks={onReorderSectionTasks}
+                    onReorderTaskToPosition={onReorderTaskToPosition}
+                    onReorderTaskWithinSection={onReorderTaskWithinSection}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 <TimeSection 
@@ -352,6 +360,8 @@ export const FlowView = ({
                     tasks={eveningTasks} 
                     onMoveTaskToSection={moveTaskToSection}
                     onReorderTasks={onReorderSectionTasks}
+                    onReorderTaskToPosition={onReorderTaskToPosition}
+                    onReorderTaskWithinSection={onReorderTaskWithinSection}
                     {...{ toggleTask, deleteTask, onFocus, onToggleSubtask, allCategories, allTasks, onOpenDetail, onTogglePin, onArchive }} 
                 />
                 {completedTasks.length > 0 && (
