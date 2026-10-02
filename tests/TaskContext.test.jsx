@@ -32,6 +32,7 @@ vi.mock('../src/utils/snapshotVault', () => ({
     getRollingSnapshots: vi.fn(() => []),
     getSnapshotDataById: vi.fn(async () => null),
     exportSafetyVaultToFile: vi.fn(async () => ({ success: true })),
+    migrateLegacySnapshots: vi.fn(async () => {}),
 }));
 
 import { formatLocalDate, getTodayDateString } from '../src/utils/dateUtils';

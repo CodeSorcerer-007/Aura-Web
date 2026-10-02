@@ -185,56 +185,98 @@ try {
     }
 } catch {}
 
+let atmosphereCleanupTimeout = null;
+let pendingAtmosphereNode = null;
+
 const cleanupAtmosphereNodes = () => {
+    if (atmosphereCleanupTimeout) {
+        clearTimeout(atmosphereCleanupTimeout);
+        atmosphereCleanupTimeout = null;
+        if (pendingAtmosphereNode) {
+            try {
+                if (pendingAtmosphereNode.stop) pendingAtmosphereNode.stop();
+                if (pendingAtmosphereNode.dispose) pendingAtmosphereNode.dispose();
+            } catch {}
+            pendingAtmosphereNode = null;
+        }
+    }
     if (atmosphereNodes) {
         const nodesToCleanup = atmosphereNodes;
         atmosphereNodes = null;
+        pendingAtmosphereNode = nodesToCleanup;
         try {
             if (atmosphereGain?.gain) {
                 // Apply 50ms linear fadeout to avoid acoustic clicks on sound switching
                 atmosphereGain.gain.rampTo(0, 0.05);
             }
-            setTimeout(() => {
+            atmosphereCleanupTimeout = setTimeout(() => {
                 try {
                     if (nodesToCleanup.stop) nodesToCleanup.stop();
                     if (nodesToCleanup.dispose) nodesToCleanup.dispose();
                 } catch (e) {
                     console.error("Atmosphere dispose error:", e);
+                } finally {
+                    if (pendingAtmosphereNode === nodesToCleanup) {
+                        pendingAtmosphereNode = null;
+                    }
+                    atmosphereCleanupTimeout = null;
                 }
             }, 55);
         } catch (e) {
             console.error("Atmosphere cleanup error:", e);
             if (nodesToCleanup.stop) nodesToCleanup.stop();
             if (nodesToCleanup.dispose) nodesToCleanup.dispose();
+            pendingAtmosphereNode = null;
         }
     }
 };
+
+let frequencyCleanupTimeout = null;
+let pendingFrequencyNode = null;
 
 const cleanupFrequencyNodes = () => {
     if (chimesInterval) {
         clearInterval(chimesInterval);
         chimesInterval = null;
     }
+    if (frequencyCleanupTimeout) {
+        clearTimeout(frequencyCleanupTimeout);
+        frequencyCleanupTimeout = null;
+        if (pendingFrequencyNode) {
+            try {
+                if (pendingFrequencyNode.stop) pendingFrequencyNode.stop();
+                if (pendingFrequencyNode.dispose) pendingFrequencyNode.dispose();
+            } catch {}
+            pendingFrequencyNode = null;
+        }
+    }
     if (frequencyNodes) {
         const nodesToCleanup = frequencyNodes;
         frequencyNodes = null;
+        pendingFrequencyNode = nodesToCleanup;
         try {
             if (frequencyGain?.gain) {
                 // Apply 50ms linear fadeout to avoid acoustic clicks on sound switching
                 frequencyGain.gain.rampTo(0, 0.05);
             }
-            setTimeout(() => {
+            frequencyCleanupTimeout = setTimeout(() => {
                 try {
                     if (nodesToCleanup.stop) nodesToCleanup.stop();
                     if (nodesToCleanup.dispose) nodesToCleanup.dispose();
                 } catch (e) {
                     console.error("Frequency dispose error:", e);
+                } finally {
+                    if (pendingFrequencyNode === nodesToCleanup) {
+                        pendingFrequencyNode = null;
+                    }
+                    frequencyCleanupTimeout = null;
                 }
             }, 55);
         } catch (e) {
             console.error("Frequency cleanup error:", e);
             if (nodesToCleanup.stop) nodesToCleanup.stop();
             if (nodesToCleanup.dispose) nodesToCleanup.dispose();
+            pendingFrequencyNode = null;
         }
     }
 };
@@ -498,7 +540,7 @@ const updateSleepTimer = (val) => {
             return;
         }
         sharedState.sleepSecondsLeft -= 1;
-        notifySubscribers();
+        // Fix B6: Avoid notifying subscribers on every 1s tick to prevent unnecessary UI re-render churn
     }, 1000);
 };
 

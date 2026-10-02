@@ -23,6 +23,8 @@ const ShortcutsModal = lazy(() => import('../modals/ShortcutsModal').then(m => (
 const AmbientSoundModal = lazy(() => import('../modals/AmbientSoundModal').then(m => ({ default: m.AmbientSoundModal })));
 const BrainSweepModal = lazy(() => import('../modals/BrainSweepModal').then(m => ({ default: m.BrainSweepModal })));
 const HarvestCardModal = lazy(() => import('../modals/HarvestCardModal').then(m => ({ default: m.HarvestCardModal })));
+// Lazy FocusView (heavy component with Tone.js integration)
+const FocusViewLazy = lazy(() => import('../views/FocusView').then(m => ({ default: m.FocusView })));
 
 // Eagerly loaded (always visible)
 import { PlantingAnimation } from './PlantingAnimation';
@@ -123,7 +125,7 @@ export const ModalManager = () => {
     }, [addTask, setToastMessage]);
 
     const commands = useMemo(() => [
-        { label: "New Task", action: () => document.querySelector('input[placeholder*="Capture a thought"]')?.focus(), shortcut: "N" },
+        { label: "New Task", action: () => (document.getElementById('task-input') || document.querySelector('input[placeholder*="Capture a thought"]'))?.focus(), shortcut: "N" },
         { label: "Zen Brain Sweep", action: () => setIsBrainSweepOpen(true), shortcut: "B" },
         { label: "Harvest Polaroid Card", action: () => setIsHarvestCardOpen(true), shortcut: "" },
         { label: "Open Search", action: () => setIsSearchOpen(true), shortcut: "Ctrl+P" },
@@ -392,6 +394,3 @@ export const ModalManager = () => {
         </>
     );
 };
-
-// Lazy FocusView (heavy component with Tone.js integration)
-const FocusViewLazy = lazy(() => import('../views/FocusView').then(m => ({ default: m.FocusView })));

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 /**
  * Persistent preference hook backed by localStorage.
@@ -64,6 +64,22 @@ export const usePreferences = (key, initialValue) => {
         } catch (e) {
             console.error(`[usePreferences] Unexpected error setting "${key}":`, e);
         }
+    }, [key]);
+
+    // Cross-tab synchronization: keep in-memory state in sync when preferences change in another tab
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const handleStorageChange = (e) => {
+            if (e.key === key && e.newValue !== null) {
+                try {
+                    setStoredValue(JSON.parse(e.newValue));
+                } catch (err) {
+                    console.error(`[usePreferences] Error parsing cross-tab update for "${key}":`, err);
+                }
+            }
+        };
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, [key]);
 
     // Always true: localStorage reads are synchronous so hydration is instant.

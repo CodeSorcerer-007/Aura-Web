@@ -32,7 +32,7 @@ const loadSnapshotMetas = () => {
 };
 
 // Auto-migrate any existing legacy snapshots from localStorage to IndexedDB once
-const migrateLegacySnapshots = async () => {
+export const migrateLegacySnapshots = async () => {
     try {
         if (typeof window === 'undefined') return;
         const legacyRaw = localStorage.getItem(LEGACY_SNAPSHOTS_KEY);
@@ -52,11 +52,6 @@ const migrateLegacySnapshots = async () => {
         console.warn('Legacy snapshot migration notice:', e);
     }
 };
-
-// Run migration in background on boot
-if (typeof window !== 'undefined') {
-    setTimeout(migrateLegacySnapshots, 1000);
-}
 
 /**
  * Record a daily rolling snapshot into IndexedDB and keep light metadata in sync

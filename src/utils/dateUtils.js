@@ -87,7 +87,7 @@ export const parseIntelligentDeadline = (text) => {
                 const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
                 const targetDay = weekdays.indexOf(matches[1].toLowerCase());
                 let dayDiff = targetDay - now.getDay();
-                if (dayDiff < 0) dayDiff += 7;
+                if (dayDiff <= 0) dayDiff += 7;
                 d.setDate(now.getDate() + dayDiff);
                 return d;
             }

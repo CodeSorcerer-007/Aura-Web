@@ -12,7 +12,8 @@ import {
     recordDailySnapshot,
     getRollingSnapshots,
     getSnapshotDataById,
-    exportSafetyVaultToFile
+    exportSafetyVaultToFile,
+    migrateLegacySnapshots
 } from '../utils/snapshotVault';
 
 const TaskContext = createContext(null);
@@ -43,6 +44,13 @@ export const TaskProvider = ({ children }) => {
             return hasDemo ? prev.filter(t => typeof t.id !== 'string' || !t.id.startsWith('demo-task-')) : prev;
         });
     }, [tasksLoaded, setTasks]);
+
+    // One-time legacy snapshot migration from localStorage to IndexedDB vault
+    useEffect(() => {
+        if (typeof migrateLegacySnapshots === 'function') {
+            migrateLegacySnapshots().catch(() => {});
+        }
+    }, []);
 
     // Ensure monolith task reference is cleared if the task no longer exists or is archived
     useEffect(() => {

@@ -4,14 +4,27 @@ const DB_VERSION = 2;
 const STORE_ATTACHMENTS = 'attachments';
 const STORE_SNAPSHOTS = 'snapshots';
 
+let cachedDB = null;
+
 export const openDB = () => {
+    if (cachedDB) {
+        return Promise.resolve(cachedDB);
+    }
     return new Promise((resolve, reject) => {
         if (typeof window === 'undefined' || !window.indexedDB) {
             return reject('IndexedDB not supported in this environment');
         }
         const request = indexedDB.open(DB_NAME, DB_VERSION);
         request.onerror = () => reject(request.error || 'Error opening IndexedDB');
-        request.onsuccess = () => resolve(request.result);
+        request.onsuccess = () => {
+            cachedDB = request.result;
+            cachedDB.onclose = () => { cachedDB = null; };
+            cachedDB.onversionchange = () => {
+                cachedDB.close();
+                cachedDB = null;
+            };
+            resolve(cachedDB);
+        };
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_ATTACHMENTS)) {

@@ -217,7 +217,7 @@ export const FocusView = ({ task, onClose, onComplete }) => {
                     {[...Array(4)].map((_, idx) => (
                         <span 
                             key={idx} 
-                            className={`text-sm transition-all ${idx < (completedPomodoros % 4) || (completedPomodoros > 0 && completedPomodoros % 4 === 0) ? 'scale-110' : 'opacity-30'}`}
+                            className={`text-sm transition-all ${idx < (completedPomodoros % 4 || (completedPomodoros > 0 ? 4 : 0)) ? 'scale-110' : 'opacity-30'}`}
                             title={`Pomodoro ${idx + 1}`}
                         >
                             🍅

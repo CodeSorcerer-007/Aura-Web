@@ -51,6 +51,9 @@ export const useKeyboardShortcuts = ({
                 else if (isAmbientSoundOpen) setIsAmbientSoundOpen(false);
                 else if (isBrainSweepOpen) setIsBrainSweepOpen(false);
                 else if (isHarvestCardOpen) setIsHarvestCardOpen(false);
+                else if (typeof document !== 'undefined' && document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
                 return;
             }
 
@@ -66,7 +69,7 @@ export const useKeyboardShortcuts = ({
                 case 'n':
                 case 'N':
                     e.preventDefault();
-                    document.querySelector('input[placeholder*="Capture a thought"]')?.focus();
+                    (document.getElementById('task-input') || document.querySelector('input[placeholder*="Capture a thought"]'))?.focus();
                     break;
                 case 'b':
                 case 'B':

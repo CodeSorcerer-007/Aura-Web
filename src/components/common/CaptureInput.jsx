@@ -255,6 +255,7 @@ export const CaptureInput = ({ onAddTask, onOpenBrainSweep, allTags = [] }) => {
 
                         <input 
                             ref={inputRef}
+                            id="task-input"
                             type="text" 
                             value={text} 
                             onChange={handleTextChange} 

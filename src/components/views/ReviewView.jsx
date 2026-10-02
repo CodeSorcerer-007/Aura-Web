@@ -49,9 +49,7 @@ export const ReviewView = ({
         twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
         return tasks.filter(task => {
             if (task.completed || task.isArchived) return false;
-            const createdDate = task.createdAt 
-                ? new Date(task.createdAt) 
-                : (typeof task.id === 'number' && task.id > 1000000000000 ? new Date(task.id) : null);
+            const createdDate = task.createdAt ? new Date(task.createdAt) : null;
             if (!createdDate || isNaN(createdDate.getTime())) return false;
             return createdDate < twoWeeksAgo;
         });

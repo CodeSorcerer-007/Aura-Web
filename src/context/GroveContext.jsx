@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useMemo } from 'react';
 import { usePreferences } from '../hooks/usePreferences';
 import { getTodayDateString } from '../utils/dateUtils';
 
@@ -58,7 +58,7 @@ export const GroveProvider = ({ children }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [groveDataLoaded]); // intentionally run once after load, not on every array change
 
-    const value = {
+    const value = useMemo(() => ({
         groveDataLoaded,
         stats,
         setStats,
@@ -72,7 +72,19 @@ export const GroveProvider = ({ children }) => {
         // Momentum award date (Fix 8)
         momentumAwardedDate,
         setMomentumAwardedDate,
-    };
+    }), [
+        groveDataLoaded,
+        stats,
+        setStats,
+        unlockedAchievements,
+        setUnlockedAchievements,
+        grove,
+        setGrove,
+        focusHistory,
+        setFocusHistory,
+        momentumAwardedDate,
+        setMomentumAwardedDate
+    ]);
 
     return (
         <GroveContext.Provider value={value}>

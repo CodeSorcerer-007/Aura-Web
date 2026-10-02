@@ -43,11 +43,11 @@ export const FlowView = ({
 }) => {
     const nonArchivedTasks = tasks.filter(t => !t.isArchived);
 
-    // Weekly Mini-Summary collapsed state — persisted via usePreferences for
-    // consistency with the rest of the app's storage pattern.
+    // Weekly Mini-Summary collapsed state — persisted via sessionStorage for
+    // per-session preference (resets on next app open).
     const [isWeeklySummaryOpen, setIsWeeklySummaryOpenRaw] = React.useState(() => {
         try {
-            return localStorage.getItem('aura-weekly-summary-collapsed') !== 'true';
+            return sessionStorage.getItem('aura-weekly-summary-collapsed') !== 'true';
         } catch {
             return true;
         }
@@ -58,7 +58,7 @@ export const FlowView = ({
         try {
             // sessionStorage is intentional here: collapsed state is a per-session
             // preference, not a durable setting — it resets on next app open.
-            localStorage.setItem('aura-weekly-summary-collapsed', (!next).toString());
+            sessionStorage.setItem('aura-weekly-summary-collapsed', (!next).toString());
         } catch {}
     };
 
@@ -302,7 +302,9 @@ export const FlowView = ({
                             >
                                 <option value="" disabled>Choose MIT...</option>
                                 {selectableTasksForMonolith.map(t => (
-                                    <option key={t.id} value={t.id}>{t.text.slice(0, 35)}</option>
+                                    <option key={t.id} value={t.id}>
+                                        {t.text.length > 45 ? t.text.slice(0, 42) + '…' : t.text}
+                                    </option>
                                 ))}
                             </select>
                         ) : (

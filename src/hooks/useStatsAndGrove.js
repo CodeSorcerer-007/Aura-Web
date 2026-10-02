@@ -27,6 +27,8 @@ export const useStatsAndGrove = ({
     const setAchievementToast = notification?.setAchievementToast;
     const setIsPlanting = notification?.setIsPlanting;
 
+    const dayArchiveRef = useRef('');
+
     // Auto Archive & Streak Updates on Day Change
     useEffect(() => {
         if (!allDataLoaded) return;
@@ -35,26 +37,29 @@ export const useStatsAndGrove = ({
         const lastActive = stats.lastActiveDate;
         const tasksCompletedToday = tasks.some(t => t.completionDate === today);
 
-        if (lastActive !== today) {
-            if (autoArchiveEnabled) {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = formatLocalDate(yesterday);
-                setTasks(currentTasks =>
-                    currentTasks.map(t => (t.completionDate === yesterdayStr ? { ...t, isArchived: true } : t))
-                );
-            }
+        // Run auto-archive only once per day and only if there are tasks to archive
+        if (autoArchiveEnabled && dayArchiveRef.current !== today) {
+            dayArchiveRef.current = today;
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatLocalDate(yesterday);
+            setTasks(currentTasks => {
+                const hasTasksToArchive = currentTasks.some(t => t.completionDate === yesterdayStr && !t.isArchived);
+                if (!hasTasksToArchive) return currentTasks;
+                return currentTasks.map(t => (t.completionDate === yesterdayStr ? { ...t, isArchived: true } : t));
+            });
+        }
 
-            if (tasksCompletedToday) {
-                const yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                const yesterdayStr = formatLocalDate(yesterday);
+        // Update streak when today's first task is completed
+        if (lastActive !== today && tasksCompletedToday) {
+            const yesterday = new Date();
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayStr = formatLocalDate(yesterday);
 
-                if (lastActive === yesterdayStr) {
-                    setStats(prev => ({ ...prev, streak: prev.streak + 1, lastActiveDate: today }));
-                } else {
-                    setStats(prev => ({ ...prev, streak: 1, lastActiveDate: today }));
-                }
+            if (lastActive === yesterdayStr) {
+                setStats(prev => ({ ...prev, streak: prev.streak + 1, lastActiveDate: today }));
+            } else {
+                setStats(prev => ({ ...prev, streak: 1, lastActiveDate: today }));
             }
         }
     }, [allDataLoaded, tasks, stats.lastActiveDate, autoArchiveEnabled, setTasks, setStats]);

@@ -90,5 +90,14 @@ describe('dateUtils', () => {
       expect(result.deadline).toMatch(/^\d{4}-10-15$/);
       expect(result.cleanedText).toBe('Quarterly planning');
     });
+
+    it('parses "by <weekday>" into upcoming future weekday', () => {
+      const result = parseIntelligentDeadline('Submit proposal by friday');
+      expect(result.deadline).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(result.cleanedText).toBe('Submit proposal');
+      // Ensure the deadline is in the future
+      const today = getTodayDateString();
+      expect(result.deadline > today).toBe(true);
+    });
   });
 });
